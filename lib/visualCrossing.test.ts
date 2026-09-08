@@ -33,11 +33,25 @@ afterEach(() => {
   vi.unstubAllEnvs()
 })
 
+const DAY_SECONDS = 24 * 60 * 60
+
 describe('buildTimelineUrl', () => {
-  it('requests the ±24h range as unix seconds so the location timezone is irrelevant', () => {
+  it('requests the range as unix seconds so the location timezone is irrelevant', () => {
     const url = buildTimelineUrl('London', NOW_EPOCH, TEST_KEY)
 
-    expect(url).toContain(`/London/${NOW_EPOCH - WINDOW_SECONDS}/${NOW_EPOCH + WINDOW_SECONDS}`)
+    expect(url).toContain(`/London/${NOW_EPOCH - WINDOW_SECONDS - DAY_SECONDS}`)
+  })
+
+  /**
+   * Regression: Visual Crossing rounds the range to whole local calendar days, and an
+   * unpadded request came back missing the hour at the edge of the ±24h window.
+   */
+  it('pads the requested range by a day either side of the window', () => {
+    const url = buildTimelineUrl('London', NOW_EPOCH, TEST_KEY)
+
+    const [, from, to] = url.split('?')[0].split('/').slice(-3)
+    expect(NOW_EPOCH - Number(from)).toBe(WINDOW_SECONDS + DAY_SECONDS)
+    expect(Number(to) - NOW_EPOCH).toBe(WINDOW_SECONDS + DAY_SECONDS)
   })
 
   it('asks for metric hourly data plus current conditions', () => {

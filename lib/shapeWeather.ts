@@ -33,14 +33,27 @@ export function toHourlyWindow(
   response: VisualCrossingTimelineResponse,
   nowEpochSeconds: number,
 ): HourlyPeriod[] {
-  const earliest = nowEpochSeconds - WINDOW_SECONDS
-  const latest = nowEpochSeconds + WINDOW_SECONDS
+  // Hourly readings land on the hour, so the bounds are widened to the hours that
+  // *contain* now±24h. Without this, a "now" at 23:09 drops the 23:00 reading and
+  // the timeline covers only ~23h of the past.
+  const earliest = floorToHour(nowEpochSeconds - WINDOW_SECONDS)
+  const latest = ceilToHour(nowEpochSeconds + WINDOW_SECONDS)
 
   return response.days
     .flatMap((day) => day.hours ?? [])
     .filter((hour) => hour.datetimeEpoch >= earliest && hour.datetimeEpoch <= latest)
     .sort((a, b) => a.datetimeEpoch - b.datetimeEpoch)
     .map((hour) => toHourlyPeriod(hour, nowEpochSeconds))
+}
+
+const HOUR_SECONDS = 60 * 60
+
+function floorToHour(epochSeconds: number): number {
+  return Math.floor(epochSeconds / HOUR_SECONDS) * HOUR_SECONDS
+}
+
+function ceilToHour(epochSeconds: number): number {
+  return Math.ceil(epochSeconds / HOUR_SECONDS) * HOUR_SECONDS
 }
 
 function toHourlyPeriod(

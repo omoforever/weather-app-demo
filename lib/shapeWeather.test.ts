@@ -32,6 +32,22 @@ describe('toSnapshot', () => {
     expect(hourly.at(-1)?.epochSeconds).toBe(NOW_EPOCH + WINDOW_SECONDS)
   })
 
+  /**
+   * Regression: with "now" partway through an hour, a strict now±24h filter drops the
+   * reading at the window edge and the timeline covers only ~23h of the past.
+   */
+  it('covers a full 24h either side when now is not on the hour', () => {
+    const nowOffHour = NOW_EPOCH + 9 * 60 + 7 // 09:07 past the hour
+
+    const { hourly } = toSnapshot(buildTimelineResponse(), nowOffHour)
+
+    expect(hourly[0].epochSeconds).toBeLessThanOrEqual(nowOffHour - WINDOW_SECONDS)
+    expect(hourly.at(-1)!.epochSeconds).toBeGreaterThanOrEqual(nowOffHour + WINDOW_SECONDS)
+    // Widening to the containing hours at both ends yields one reading more than the
+    // 49 an exactly hour-aligned "now" produces.
+    expect(hourly).toHaveLength(50)
+  })
+
   it('returns hours in ascending order even when days arrive shuffled', () => {
     const response = buildTimelineResponse()
     const shuffled = { ...response, days: [...response.days].reverse() }
