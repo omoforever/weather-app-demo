@@ -65,6 +65,20 @@ whenever `now` isn't on the hour — a "now" of 23:09 yielded only ~23h of past 
 `toHourlyWindow` floors the lower bound and ceils the upper, so the hours *containing*
 `now ± 24h` are included. Expect 49-50 readings, not exactly 49.
 
+**Repeat searches are cached; refresh deliberately isn't**
+`lib/weatherCache.ts` holds each location's snapshot for 10 minutes, so searching the same
+place twice costs one lookup rather than two. Refresh exists to get *newer* data, so it always
+goes to the network — cache and refresh pull in opposite directions on purpose, and both
+directions are pinned by tests. Failed searches are never cached, so an outage can't poison a
+location for the whole window. The cache is module state, which means tests must call
+`clearWeatherCache()` between cases.
+
+**Fixture mode for development**
+`WEATHER_FIXTURE=1` makes `lib/visualCrossing.ts` serve generated data instead of calling the
+API, so UI work costs no quota. It returns the API's own response shape, so real parsing and
+trimming still run. Guarded twice — the flag must be exactly `"1"` and `NODE_ENV` must not be
+production.
+
 **Weather icons carry the condition where the words don't**
 Timeline cells show an icon instead of condition text, so the icon's `aria-label` is the only
 thing conveying the condition — it must never be `aria-hidden` there. On the card the words are
@@ -99,6 +113,9 @@ Built:
 | `lib/fetchWeather.ts` | Client-side call to `/api/weather`; unwraps the success/error envelope |
 | `lib/formatWeather.ts` | Display formatting — rounding, units, hours in the location's timezone |
 | `lib/weatherIcon.ts` | Maps a Visual Crossing `icon` slug to a MUI icon + `weather` palette token |
+| `lib/weatherCache.ts` | In-memory snapshot cache, 10-minute freshness window, keyed on normalised location |
+| `lib/devFixture.ts` | Generated stand-in for the API when `WEATHER_FIXTURE=1` (development only) |
+| `components/RefreshControl.tsx` | Refresh button plus when the showing data was fetched |
 | `components/WeatherIcon.tsx` | Renders that icon; `decorative` decides whether it announces the condition |
 | `hooks/useWeatherSearch.ts` | Search state (status/snapshot/error); cancels a superseded search |
 | `components/SearchInput.tsx` | Location text input + submit; never fires on blank input |

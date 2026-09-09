@@ -4,7 +4,28 @@ Running log, newest at top. One entry per session or meaningful chunk of work �
 
 ## Current state
 
-Both core flows from PRODUCT.md work, with coloured weather icons and motion polish done. 184 tests green, lint and typecheck clean, verified on laptop and phone including reduced-motion. Still plain text: loading and error. Still missing: refresh, and both stretch goals. Next ticket is Refresh control — which should carry the response caching, since live lookups are the scarce resource (see below).
+**All three core flows from PRODUCT.md are done** — search, ±24h timeline, refresh — with icons, motion polish and caching. 237 tests green, lint and typecheck clean. Remaining work is polish and housekeeping: loading and error are still plain text, plus Playwright setup, the branch/PR decision, and two stretch goals. Next ticket is Error state.
+
+Note `WEATHER_FIXTURE=1` is set in `.env.local`: the app is serving generated weather. Clear it and restart for live data.
+
+---
+
+## [2026-09-09] — session 9
+
+**Did:** Refresh control ticket, which also carried the caching: `lib/weatherCache.ts` + tests, `refresh()`/`isRefreshing`/`updatedAtMs` in `useWeatherSearch` + tests, `components/RefreshControl.tsx` + tests, wired into the page. 237 tests.
+
+**Decisions:**
+- **Cache TTL is 10 minutes**, in memory only. Weather moves slowly enough to reuse, not so slowly that data goes misleading. A durable cache would raise questions about stale data across days that this project doesn't need to answer.
+- Cache keys are normalised (`"London"`, `" london "`, `"LONDON"` are one entry) — otherwise a casing difference silently costs another 25 records.
+- **Refresh bypasses the cache by design**; without that the button would do nothing while an entry stayed fresh. Search and refresh share one `load()` differing only in cache use and which busy flag they set.
+- Refresh **updates in place**: it sets `isRefreshing` rather than `status = 'loading'`, so the card stays on screen. Search replaces the screen; refresh doesn't.
+- Refresh re-sends the location **as typed**, not as the API geocoded it — the resolved name is an output, not the query.
+- Failed searches are never cached, so one outage can't poison a location for ten minutes.
+- "Updated 14:32" uses the **viewer's** timezone while the forecast uses the location's. Reused `formatHour` rather than writing a new formatter.
+
+**Caught by tests:** six existing tests failed as soon as the cache landed — module state meant a cached London leaked between tests. Both test files now call `clearWeatherCache()` in `beforeEach`. That's the standing tax on module-level state.
+
+**Next:** Error state ticket.
 
 ---
 

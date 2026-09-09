@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import HomePage from '@/app/page'
 import { fetchWeather } from '@/lib/fetchWeather'
+import { clearWeatherCache } from '@/lib/weatherCache'
 import { WeatherFetchError } from '@/lib/weatherErrors'
 import { toSnapshot } from '@/lib/shapeWeather'
 import { NOW_EPOCH, buildTimelineResponse } from '@/test/fixtures/timeline'
@@ -20,6 +21,8 @@ function searchFor(location: string) {
 
 beforeEach(() => {
   fetchWeatherMock.mockReset()
+  // Module state: without this, a cached London leaks into later tests.
+  clearWeatherCache()
 })
 
 afterEach(cleanup)
@@ -115,5 +118,61 @@ describe('HomePage', () => {
 
     expect(await screen.findByText(SNAPSHOT.resolvedAddress)).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+})
+
+describe('HomePage refresh', () => {
+  it('offers no refresh until something is loaded', () => {
+    render(<HomePage />)
+
+    expect(screen.queryByRole('button', { name: 'Refresh' })).not.toBeInTheDocument()
+  })
+
+  it('offers refresh once weather is showing', async () => {
+    fetchWeatherMock.mockResolvedValue(SNAPSHOT)
+    render(<HomePage />)
+
+    searchFor('London')
+
+    expect(await screen.findByRole('button', { name: 'Refresh' })).toBeInTheDocument()
+  })
+
+  /** The button must reach the network even though the location is cached. */
+  it('re-fetches the loaded location when refresh is pressed', async () => {
+    fetchWeatherMock.mockResolvedValue(SNAPSHOT)
+    render(<HomePage />)
+
+    searchFor('London')
+    fireEvent.click(await screen.findByRole('button', { name: 'Refresh' }))
+
+    await screen.findByRole('button', { name: 'Refresh' })
+    expect(fetchWeatherMock).toHaveBeenCalledTimes(2)
+    expect(fetchWeatherMock.mock.calls[1][0]).toBe('London')
+  })
+
+  it('keeps the weather on screen while refreshing', async () => {
+    fetchWeatherMock.mockResolvedValue(SNAPSHOT)
+    render(<HomePage />)
+    searchFor('London')
+    await screen.findByRole('region', { name: 'Current conditions' })
+
+    fetchWeatherMock.mockImplementation(() => new Promise(() => {}))
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+
+    expect(await screen.findByRole('progressbar', { name: 'Refreshing' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Current conditions' })).toBeInTheDocument()
+    expect(screen.queryByText('Loading…')).not.toBeInTheDocument()
+  })
+
+  it('spends no request when the same place is searched twice', async () => {
+    fetchWeatherMock.mockResolvedValue(SNAPSHOT)
+    render(<HomePage />)
+
+    searchFor('London')
+    await screen.findByRole('region', { name: 'Current conditions' })
+    searchFor('London')
+    await screen.findByRole('region', { name: 'Current conditions' })
+
+    expect(fetchWeatherMock).toHaveBeenCalledOnce()
   })
 })

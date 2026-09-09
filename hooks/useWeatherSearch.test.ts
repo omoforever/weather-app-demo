@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useWeatherSearch } from '@/hooks/useWeatherSearch'
 import { fetchWeather } from '@/lib/fetchWeather'
+import { clearWeatherCache } from '@/lib/weatherCache'
 import { WeatherFetchError } from '@/lib/weatherErrors'
 import { toSnapshot } from '@/lib/shapeWeather'
 import { NOW_EPOCH, buildTimelineResponse } from '@/test/fixtures/timeline'
@@ -40,6 +41,8 @@ function pendingFetch() {
 
 beforeEach(() => {
   fetchWeatherMock.mockReset()
+  // Module state: without this, a cached London leaks into later tests.
+  clearWeatherCache()
 })
 
 afterEach(() => {
@@ -179,5 +182,188 @@ describe('useWeatherSearch', () => {
     unmount()
 
     expect(signal?.aborted).toBe(true)
+  })
+})
+
+describe('useWeatherSearch caching', () => {
+  it('spends a request the first time a location is searched', async () => {
+    fetchWeatherMock.mockResolvedValue(snapshotFor('London'))
+    const { result } = renderHook(() => useWeatherSearch())
+
+    await act(async () => {
+      await result.current.search('London')
+    })
+
+    expect(fetchWeatherMock).toHaveBeenCalledOnce()
+  })
+
+  /** Every avoided lookup is 25 records kept. */
+  it('reuses the cached snapshot when the same place is searched again', async () => {
+    fetchWeatherMock.mockResolvedValue(snapshotFor('London'))
+    const { result } = renderHook(() => useWeatherSearch())
+
+    await act(async () => {
+      await result.current.search('London')
+    })
+    await act(async () => {
+      await result.current.search('London')
+    })
+
+    expect(fetchWeatherMock).toHaveBeenCalledOnce()
+    expect(result.current.snapshot?.resolvedAddress).toBe('London')
+    expect(result.current.status).toBe('success')
+  })
+
+  it('still fetches a location it has not seen', async () => {
+    fetchWeatherMock.mockResolvedValue(snapshotFor('London'))
+    const { result } = renderHook(() => useWeatherSearch())
+
+    await act(async () => {
+      await result.current.search('London')
+    })
+    fetchWeatherMock.mockResolvedValue(snapshotFor('Paris'))
+    await act(async () => {
+      await result.current.search('Paris')
+    })
+
+    expect(fetchWeatherMock).toHaveBeenCalledTimes(2)
+    expect(result.current.snapshot?.resolvedAddress).toBe('Paris')
+  })
+
+  it('shows a cached result without flashing a loading state', async () => {
+    fetchWeatherMock.mockResolvedValue(snapshotFor('London'))
+    const { result } = renderHook(() => useWeatherSearch())
+
+    await act(async () => {
+      await result.current.search('London')
+    })
+
+    const statuses: string[] = []
+    await act(async () => {
+      const pending = result.current.search('London')
+      statuses.push(result.current.status)
+      await pending
+    })
+
+    expect(statuses).not.toContain('loading')
+  })
+
+  it('does not cache a failed search', async () => {
+    fetchWeatherMock.mockRejectedValue(new WeatherFetchError(502, 'down'))
+    const { result } = renderHook(() => useWeatherSearch())
+
+    await act(async () => {
+      await result.current.search('London')
+    })
+    fetchWeatherMock.mockResolvedValue(snapshotFor('London'))
+    await act(async () => {
+      await result.current.search('London')
+    })
+
+    expect(fetchWeatherMock).toHaveBeenCalledTimes(2)
+    expect(result.current.status).toBe('success')
+  })
+})
+
+describe('useWeatherSearch refresh', () => {
+  it('does nothing when no location is loaded', async () => {
+    const { result } = renderHook(() => useWeatherSearch())
+
+    await act(async () => {
+      await result.current.refresh()
+    })
+
+    expect(fetchWeatherMock).not.toHaveBeenCalled()
+    expect(result.current.status).toBe('idle')
+  })
+
+  /** The whole point of refresh: newer data, so the cache must be bypassed. */
+  it('goes to the network even though the location is cached', async () => {
+    fetchWeatherMock.mockResolvedValue(snapshotFor('London'))
+    const { result } = renderHook(() => useWeatherSearch())
+
+    await act(async () => {
+      await result.current.search('London')
+    })
+    fetchWeatherMock.mockResolvedValue(snapshotFor('London updated'))
+    await act(async () => {
+      await result.current.refresh()
+    })
+
+    expect(fetchWeatherMock).toHaveBeenCalledTimes(2)
+    expect(result.current.snapshot?.resolvedAddress).toBe('London updated')
+  })
+
+  it('re-fetches the location as typed, not as the API resolved it', async () => {
+    fetchWeatherMock.mockResolvedValue(snapshotFor('London, England, United Kingdom'))
+    const { result } = renderHook(() => useWeatherSearch())
+
+    await act(async () => {
+      await result.current.search('london')
+    })
+    await act(async () => {
+      await result.current.refresh()
+    })
+
+    expect(fetchWeatherMock.mock.calls[1][0]).toBe('london')
+  })
+
+  it('keeps the results on screen while refreshing', async () => {
+    fetchWeatherMock.mockResolvedValue(snapshotFor('London'))
+    const { result } = renderHook(() => useWeatherSearch())
+    await act(async () => {
+      await result.current.search('London')
+    })
+
+    pendingFetch()
+    act(() => {
+      void result.current.refresh()
+    })
+
+    await waitFor(() => expect(result.current.isRefreshing).toBe(true))
+    expect(result.current.status).toBe('success')
+    expect(result.current.snapshot).not.toBeNull()
+  })
+
+  it('stops reporting a refresh once it finishes', async () => {
+    fetchWeatherMock.mockResolvedValue(snapshotFor('London'))
+    const { result } = renderHook(() => useWeatherSearch())
+
+    await act(async () => {
+      await result.current.search('London')
+    })
+    await act(async () => {
+      await result.current.refresh()
+    })
+
+    expect(result.current.isRefreshing).toBe(false)
+  })
+
+  it('stops reporting a refresh even when it fails', async () => {
+    fetchWeatherMock.mockResolvedValue(snapshotFor('London'))
+    const { result } = renderHook(() => useWeatherSearch())
+    await act(async () => {
+      await result.current.search('London')
+    })
+
+    fetchWeatherMock.mockRejectedValue(new WeatherFetchError(502, 'down'))
+    await act(async () => {
+      await result.current.refresh()
+    })
+
+    expect(result.current.isRefreshing).toBe(false)
+    expect(result.current.errorMessage).toBe('down')
+  })
+
+  it('records when the showing data was fetched', async () => {
+    fetchWeatherMock.mockResolvedValue(snapshotFor('London'))
+    const { result } = renderHook(() => useWeatherSearch())
+
+    expect(result.current.updatedAtMs).toBeNull()
+    await act(async () => {
+      await result.current.search('London')
+    })
+
+    expect(result.current.updatedAtMs).toBeTypeOf('number')
   })
 })
