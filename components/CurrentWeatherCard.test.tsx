@@ -17,6 +17,8 @@ vi.mock('motion/react', () => ({
     div: ({ children, initial }: { children: ReactNode; initial: { y: number } }) => (
       <div data-slide-from={String(initial.y)}>{children}</div>
     ),
+    // WeatherIcon wraps its icon in a motion.span when idling.
+    span: ({ children }: { children: ReactNode }) => <span>{children}</span>,
   },
   useReducedMotion: vi.fn(() => false),
 }))

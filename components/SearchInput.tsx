@@ -2,6 +2,7 @@
 
 import { useState, type SyntheticEvent } from 'react'
 import Box from '@mui/material/Box'
+import CircularProgress from '@mui/material/CircularProgress'
 import IconButton from '@mui/material/IconButton'
 import InputAdornment from '@mui/material/InputAdornment'
 import TextField from '@mui/material/TextField'
@@ -48,7 +49,13 @@ export function SearchInput({ onSearch, isSearching = false }: SearchInputProps)
                   edge="end"
                   disabled={!canSubmit || isSearching}
                 >
-                  <SearchIcon />
+                  {/* Feedback sits on the control that was pressed. The spinner keeps
+                      the icon's size so the field doesn't jump while searching. */}
+                  {isSearching ? (
+                    <CircularProgress size={20} aria-label="Searching" />
+                  ) : (
+                    <SearchIcon />
+                  )}
                 </IconButton>
               </InputAdornment>
             ),

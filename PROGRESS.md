@@ -4,7 +4,24 @@ Running log, newest at top. One entry per session or meaningful chunk of work �
 
 ## Current state
 
-Both core flows from PRODUCT.md work, now with coloured weather icons on the card and in every timeline cell. 161 tests green, lint and typecheck clean, verified on laptop and phone. Still plain text: loading and error. Still missing: refresh, and both stretch goals. Next ticket is Motion polish, then Refresh control.
+Both core flows from PRODUCT.md work, with coloured weather icons and motion polish done. 184 tests green, lint and typecheck clean, verified on laptop and phone including reduced-motion. Still plain text: loading and error. Still missing: refresh, and both stretch goals. Next ticket is Refresh control — which should carry the response caching, since live lookups are the scarce resource (see below).
+
+---
+
+## [2026-09-09] — session 8
+
+**Did:** Motion polish ticket: staggered timeline entrance, gentle idle loop on the card icon, spinner on the search button. 184 tests.
+
+**Decisions:**
+- Stagger spreads cells across a **fixed 250ms window** rather than a fixed per-cell step — 50 cells arrive as quickly as 5. A flat 20ms each would take a second, with cells still moving after the scroll-to-now.
+- Cells rise vertically, never horizontally, so the entrance can't fight the sideways scroll to the current hour.
+- Dimming moved from `opacity` to `filter: opacity(0.55)` because the entrance fade needed `opacity`. Two owners of one property meant cells rendered invisible and three tests failed — fixed the cause rather than loosening the tests.
+- Idle loops on the card icon only. The `motion.span` wrapper isn't rendered at all when idle is off or reduced motion is on, so the ~50 timeline icons carry no animation machinery.
+- Idle motions are a pure function returning objects, so they're tested as data (sun rotates, storm flashes without moving, nothing loops faster than 2s) rather than by waiting on frames.
+
+**Caution — usage limits:** Omar flagged we're over halfway through a limit. Live searches cost 25 records each against 1000/day (~40 lookups). Manual verification is the main consumer. Mitigations to take up next: client-side caching in the Refresh ticket, and consider a dev fixture mode so UI work needs no live calls at all.
+
+**Next:** Refresh control, including caching.
 
 ---
 

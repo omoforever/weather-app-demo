@@ -1,6 +1,6 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockedFunction } from 'vitest'
-import { HourlyTimeline } from '@/components/HourlyTimeline'
+import { HourlyTimeline, staggerDelay } from '@/components/HourlyTimeline'
 import { toSnapshot } from '@/lib/shapeWeather'
 import { NOW_EPOCH, buildTimelineResponse } from '@/test/fixtures/timeline'
 import type { WeatherSnapshot } from '@/types/weather'
@@ -105,5 +105,50 @@ describe('HourlyTimeline', () => {
 
     expect(container).toBeEmptyDOMElement()
     expect(scrollIntoView).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * The stagger spreads cells across a fixed window rather than giving each a fixed step.
+ * At a flat 20ms per cell, 50 cells would still be arriving a second later — and moving
+ * while the scroll-to-now runs.
+ */
+describe('staggerDelay', () => {
+  const LAST_DELAY = 0.25
+
+  it('starts the first cell immediately', () => {
+    expect(staggerDelay(0, 50)).toBe(0)
+  })
+
+  it('finishes the last cell within the window, however many cells there are', () => {
+    expect(staggerDelay(49, 50)).toBeCloseTo(LAST_DELAY)
+    expect(staggerDelay(4, 5)).toBeCloseTo(LAST_DELAY)
+    expect(staggerDelay(199, 200)).toBeCloseTo(LAST_DELAY)
+  })
+
+  it('spaces the cells evenly in between', () => {
+    expect(staggerDelay(2, 5)).toBeCloseTo(LAST_DELAY / 2)
+  })
+
+  it('runs left to right', () => {
+    const delays = Array.from({ length: 10 }, (_, index) => staggerDelay(index, 10))
+
+    expect(delays).toEqual([...delays].sort((a, b) => a - b))
+    expect(new Set(delays).size).toBe(delays.length)
+  })
+
+  it('never delays longer than the window', () => {
+    const delays = Array.from({ length: 50 }, (_, index) => staggerDelay(index, 50))
+
+    expect(Math.max(...delays)).toBeLessThanOrEqual(LAST_DELAY)
+  })
+
+  /** A one-hour window would otherwise divide by zero. */
+  it('does not stagger a single cell', () => {
+    expect(staggerDelay(0, 1)).toBe(0)
+  })
+
+  it('survives being asked about an empty list', () => {
+    expect(staggerDelay(0, 0)).toBe(0)
   })
 })

@@ -3,6 +3,7 @@
 import type { Ref } from 'react'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
+import { motion, useReducedMotion } from 'motion/react'
 import { WeatherIcon } from '@/components/WeatherIcon'
 import {
   formatPeriodLabel,
@@ -19,6 +20,11 @@ export type HourlyPeriodCellProps = {
   isCurrent?: boolean
   /** Lets the timeline scroll this cell into view. React 19 takes ref as a plain prop. */
   ref?: Ref<HTMLLIElement>
+  /**
+   * Seconds to wait before this cell fades in, so the timeline can stagger them. The
+   * timeline caps the spread — see HourlyTimeline.
+   */
+  entranceDelay?: number
 }
 
 /**
@@ -31,14 +37,25 @@ export function HourlyPeriodCell({
   timeZone,
   isCurrent = false,
   ref,
+  entranceDelay = 0,
 }: HourlyPeriodCellProps) {
   // Past hours are context, not forecast — de-emphasised so the eye lands on now onward.
   const isDimmed = period.isPast && !isCurrent
+  const shouldReduceMotion = useReducedMotion()
 
   return (
     <Stack
-      component="li"
+      component={motion.li}
       ref={ref}
+      // Rises vertically, never horizontally: the timeline scrolls sideways to the
+      // current hour at the same moment, and a horizontal offset would fight it.
+      initial={shouldReduceMotion ? false : { opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        duration: 0.25,
+        ease: 'easeOut',
+        delay: shouldReduceMotion ? 0 : entranceDelay,
+      }}
       // Announces "current" to a screen reader; the background alone is visual-only.
       aria-current={isCurrent ? 'time' : undefined}
       spacing={2}
@@ -52,7 +69,9 @@ export function HourlyPeriodCell({
         // to sit in the middle rather than against the left edge.
         alignItems: 'center',
         textAlign: 'center',
-        opacity: isDimmed ? 0.55 : 1,
+        // Dimming uses `filter`, not `opacity`, because Motion owns `opacity` for the
+        // entrance fade — two owners of one property would fight. Visually identical.
+        filter: isDimmed ? 'opacity(0.55)' : 'none',
         bgcolor: isCurrent ? 'action.selected' : 'transparent',
       }}
     >

@@ -54,7 +54,7 @@ export function CurrentWeatherCard({ snapshot }: CurrentWeatherCardProps) {
             <Stack direction="row" spacing={4} sx={{ alignItems: 'center' }}>
               {/* Decorative: the condition is written just below, so announcing the
                   icon too would repeat it. */}
-              <WeatherIcon condition={current.condition} fontSize="large" decorative />
+              <WeatherIcon condition={current.condition} fontSize="large" decorative idle />
               <Stack spacing={1}>
                 <Typography variant="h2" component="p">
                   {formatTemperature(current.temperature)}

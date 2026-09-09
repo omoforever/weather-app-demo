@@ -6,7 +6,6 @@ _(none — pull the next item from Backlog)_
 
 ## Backlog
 
-- [ ] **Motion polish** — depends on the icons ticket. Staggered entrance for timeline cells (capped ~250ms total so it can't fight the scroll-into-view), a gentle idle loop on the card icon only (slow sun rotation, rain drift, etc.), and a spinner on the search button while fetching. Everything off under `prefers-reduced-motion`.
 - [ ] Refresh control — re-fetch current location's data on demand
 - [ ] Error state — inline message for invalid location / API failure
 - [ ] Loading state — skeleton/placeholder while fetching
@@ -18,6 +17,7 @@ _(none — pull the next item from Backlog)_
 ## Done
 
 - [2026-09-08] Project setup — Next.js 16 + TypeScript scaffold (no `src/`), MUI v9 + emotion + Motion v12 with theme provider, Vitest + React Testing Library, `VISUAL_CROSSING_API_KEY` via `.env.local` / `.env.example`. Lint, typecheck and tests all clean.
+- [2026-09-09] Motion polish — staggered timeline entrance (fixed 250ms window, so 50 cells arrive as fast as 5 and never fight the scroll-to-now), gentle idle loop on the card icon only, spinner on the search button while fetching. All off under `prefers-reduced-motion`. Cell dimming moved from `opacity` to `filter` so the entrance fade could own `opacity`. 184 tests green. Verified by Omar on laptop and phone, reduced motion included.
 - [2026-09-09] Weather icons and colours — `weather` palette in `theme.ts` (all eight tokens measured ≥3:1 on white), `lib/weatherIcon.ts` mapping all 16 documented Visual Crossing slugs plus a fallback, `components/WeatherIcon.tsx`. Card icon is decorative; timeline cells show a labelled icon **instead of** condition text, so the label is the only carrier of the condition. Cells narrowed 88→72px. 161 tests green. Verified by Omar on laptop and phone; icon centring fixed on his report.
 - [2026-09-09] Hourly timeline — `components/HourlyPeriodCell.tsx` (one hour; past hours dimmed, current hour marked `aria-current`) and `components/HourlyTimeline.tsx` (sideways-scrolling list that decides which hour is "now" and scrolls it into view), wired below the card. 125 tests green. Verified by Omar on laptop and phone.
 - [2026-09-09] Current weather card — `lib/formatWeather.ts` (display formatting, timezone-aware hours), `components/CurrentWeatherCard.tsx` (temp, condition, wind, rain chance, fade+slide entrance honouring reduced-motion), wired into `app/page.tsx`. 104 tests green. Verified by Omar on laptop and phone. Also fixed phone access: `allowedDevOrigins` in `next.config.ts`.

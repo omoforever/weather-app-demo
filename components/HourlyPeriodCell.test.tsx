@@ -1,7 +1,19 @@
 import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { useReducedMotion } from 'motion/react'
 import { HourlyPeriodCell } from '@/components/HourlyPeriodCell'
 import type { HourlyPeriod } from '@/types/weather'
+
+/**
+ * Only the reduced-motion hook is faked — Motion itself still renders, so these tests
+ * observe the real inline styles it applies rather than a stub's props.
+ */
+vi.mock('motion/react', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('motion/react')>()),
+  useReducedMotion: vi.fn(() => false),
+}))
+
+const reducedMotionMock = vi.mocked(useReducedMotion)
 
 const PERIOD: HourlyPeriod = {
   timestamp: '2026-09-08T12:00:00.000Z',
@@ -13,18 +25,27 @@ const PERIOD: HourlyPeriod = {
   isPast: false,
 }
 
-function renderCell(overrides: Partial<HourlyPeriod> = {}, isCurrent = false) {
+function renderCell(
+  overrides: Partial<HourlyPeriod> = {},
+  isCurrent = false,
+  entranceDelay = 0,
+) {
   render(
     <ul>
       <HourlyPeriodCell
         period={{ ...PERIOD, ...overrides }}
         timeZone="Europe/London"
         isCurrent={isCurrent}
+        entranceDelay={entranceDelay}
       />
     </ul>,
   )
   return screen.getByRole('listitem')
 }
+
+beforeEach(() => {
+  reducedMotionMock.mockReturnValue(false)
+})
 
 afterEach(cleanup)
 
@@ -83,20 +104,20 @@ describe('HourlyPeriodCell', () => {
   it('dims a past hour', () => {
     const cell = renderCell({ isPast: true })
 
-    expect(cell).toHaveStyle({ opacity: '0.55' })
+    expect(cell).toHaveStyle({ filter: 'opacity(0.55)' })
   })
 
   it('does not dim an upcoming hour', () => {
     const cell = renderCell({ isPast: false })
 
-    expect(cell).toHaveStyle({ opacity: '1' })
+    expect(cell).toHaveStyle({ filter: 'none' })
   })
 
   /** The hour containing "now" is technically past, but it is the one you care about. */
   it('does not dim the current hour even though it has started', () => {
     const cell = renderCell({ isPast: true }, true)
 
-    expect(cell).toHaveStyle({ opacity: '1' })
+    expect(cell).toHaveStyle({ filter: 'none' })
   })
 
   /**
@@ -107,6 +128,32 @@ describe('HourlyPeriodCell', () => {
     const cell = renderCell()
 
     expect(cell).toHaveStyle({ alignItems: 'center' })
+  })
+
+  describe('entrance', () => {
+    it('starts invisible so it can fade in', () => {
+      const cell = renderCell()
+
+      expect(cell).toHaveStyle({ opacity: '0' })
+    })
+
+    it('appears immediately for a viewer who asked for reduced motion', () => {
+      reducedMotionMock.mockReturnValue(true)
+
+      const cell = renderCell()
+
+      expect(cell).not.toHaveStyle({ opacity: '0' })
+    })
+
+    /**
+     * Dimming moved to `filter` precisely so the entrance fade could own `opacity`.
+     * A past cell must still be dimmed while it is fading in.
+     */
+    it('keeps dimming independent of the fade', () => {
+      const cell = renderCell({ isPast: true })
+
+      expect(cell).toHaveStyle({ opacity: '0', filter: 'opacity(0.55)' })
+    })
   })
 
   it('renders as a list item so the timeline reads as a list', () => {

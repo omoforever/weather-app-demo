@@ -109,6 +109,19 @@ describe('SearchInput', () => {
     expect(button).toBeDisabled()
   })
 
+  /** Feedback belongs on the control that was pressed, not only elsewhere on the page. */
+  it('shows a spinner on the button while a search is running', () => {
+    renderSearchInput(true)
+
+    expect(screen.getByRole('progressbar', { name: 'Searching' })).toBeInTheDocument()
+  })
+
+  it('shows no spinner when idle', () => {
+    renderSearchInput(false)
+
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+  })
+
   it('keeps the field usable while a search is running', () => {
     const { field } = renderSearchInput(true)
 
