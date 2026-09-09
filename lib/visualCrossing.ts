@@ -14,14 +14,19 @@ const REQUEST_TIMEOUT_MS = 8_000
 export const WINDOW_SECONDS = 24 * 60 * 60
 
 /**
- * Extra range requested either side of the ±24h window.
+ * No padding is added around the window, deliberately.
  *
- * Visual Crossing rounds a unix-second range to whole calendar days in the
- * location's timezone, and does so inconsistently enough that an unpadded request
- * can come back missing the hour at the edge of our window. Asking for a day either
- * side guarantees the window is fully covered; lib/shapeWeather.ts trims it back.
+ * Visual Crossing rounds a unix-second range out to whole calendar days in the
+ * location's timezone, and does so inconsistently, so an unpadded request
+ * occasionally comes back missing the hour at the very edge of the ±24h window —
+ * the timeline shows ~23h of past data instead of 24h.
+ *
+ * Requesting a day either side fixes that, but doubles the reported query cost
+ * (25 → 49), halving how many lookups the free tier allows. For a learning project
+ * that trade is not worth it: an occasional missing edge hour is invisible in the
+ * UI, whereas running out of quota stops work. Reinstate padding here if a complete
+ * window ever matters more than request count.
  */
-const RANGE_PADDING_SECONDS = 24 * 60 * 60
 
 /** Only the fields lib/shapeWeather.ts reads — keeps the payload small. */
 const ELEMENTS = 'datetimeEpoch,temp,windspeed,precipprob,conditions,icon'
@@ -37,8 +42,8 @@ export function buildTimelineUrl(
   nowEpochSeconds: number,
   apiKey: string,
 ): string {
-  const from = nowEpochSeconds - WINDOW_SECONDS - RANGE_PADDING_SECONDS
-  const to = nowEpochSeconds + WINDOW_SECONDS + RANGE_PADDING_SECONDS
+  const from = nowEpochSeconds - WINDOW_SECONDS
+  const to = nowEpochSeconds + WINDOW_SECONDS
   const url = new URL(
     `${TIMELINE_BASE_URL}/${encodeURIComponent(location)}/${from}/${to}`,
   )

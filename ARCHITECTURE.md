@@ -42,15 +42,22 @@ anything else as a generic 502, so upstream detail (including key problems) can'
 Notably: Visual Crossing answers an unresolvable location with **400**, which we surface
 as **404** so the client can tell "bad location" from "bad request".
 
-**The range is requested in unix seconds, padded by a day, then trimmed locally**
+**The range is requested in unix seconds, unpadded — query cost beats a perfect window**
 A yesterday→tomorrow calendar range would have to be computed in the location's timezone,
 which we only learn *from* the response — for far-offset locations that drops hours at the
 edge of the window. Passing epoch seconds sidesteps that, but Visual Crossing still rounds
-the range to whole calendar days in the location's timezone, and does so inconsistently:
-two identical unpadded requests 20 minutes apart returned different first hours
+the range out to whole calendar days in the location's timezone, and does so
+inconsistently: two identical requests 20 minutes apart returned different first hours
 (`2026-09-07T23:00Z` vs `2026-09-08T00:00Z`), the latter missing an hour the window needed.
-So `lib/visualCrossing.ts` asks for a day either side and `lib/shapeWeather.ts` trims to
-the window. Verified live against London, Auckland (UTC+12) and New York.
+
+Requesting a day either side fixes that completely, but the response's own `queryCost`
+field shows it **doubles the price of a lookup: 25 → 49**, halving how far the free tier
+goes. Padding was dropped on 2026-09-09: an occasional missing edge hour is invisible in
+the UI, whereas exhausting the quota stops work. `lib/visualCrossing.ts` carries the
+comment explaining how to reinstate it.
+
+Note that `queryCost` is the number to trust — the documented "24 records per day of
+hourly data" rule overestimates it by roughly 2.5×.
 
 **Window bounds are widened to whole hours**
 Readings land on the hour, so a strict `now ± 24h` filter drops the reading at the edge
@@ -65,7 +72,7 @@ requires `^22 || >=24`.
 
 ## Known constraints
 
-- Visual Crossing free tier allows 1000 records/day, and hourly data is billed at 24 records per calendar day covered. Because the request is padded by a day either side (see key decisions), each lookup spans 5 calendar days ≈ **120 records** — roughly 8 lookups/day. This is the price of a reliably complete ±24h window; client-side caching of the last successful lookup is therefore not optional, and dev work should lean on the mocked tests rather than live calls.
+- Visual Crossing free tier allows 1000 records/day. A ±24h lookup reports a `queryCost` of **25**, so roughly **40 lookups/day** — measured, not estimated. Still small enough that caching the last successful lookup matters, and that dev work should lean on the mocked tests rather than live calls.
 - `resolvedAddress` echoes simple input verbatim ("London" → `"London"`) but returns a fully geocoded name for anything ambiguous ("New York, NY" → `"New York, NY, United States"`). The UI should show it rather than the raw query, but can't rely on it being more specific than what was typed.
 - Location input is free text — the API handles geocoding, but ambiguous/misspelled input can return a 400; surface that as a UI error rather than retrying silently.
 

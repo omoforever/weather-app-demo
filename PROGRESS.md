@@ -4,7 +4,24 @@ Running log, newest at top. One entry per session or meaningful chunk of work �
 
 ## Current state
 
-Scaffold and `/api/weather` are done and verified against the live Visual Crossing API (45 tests green, lint and typecheck clean, pushed to `origin/main`). No UI beyond a placeholder page — next ticket is `SearchInput`.
+Search works end to end: type a location, submit, see the weather. 84 tests green, lint and typecheck clean. Results are still plain text — the card, timeline, refresh, loading and error tickets each replace one piece of that placeholder. Not yet click-tested in a browser by Omar.
+
+---
+
+## [2026-09-09] — session 4
+
+**Did:** Built the Search input ticket, one file at a time for review: `lib/fetchWeather.ts` (client call to our own route), `hooks/useWeatherSearch.ts` (status/snapshot/error state), `components/SearchInput.tsx` (presentational field + submit), and the wiring in `app/page.tsx` — each with tests, 84 total.
+
+Then dropped the request padding added yesterday.
+
+**Decisions:**
+- **Padding removed.** The response's own `queryCost` field reports **25 unpadded vs 49 padded** — so padding halved the free tier from ~40 lookups/day to ~20. Not worth it here: a missing edge hour is invisible, running out of quota isn't. A test pins the unpadded range so it can't be undone by accident.
+- **My earlier "120 records / 8 lookups a day" figure was wrong** — it came from the documented "24 records per calendar day" rule, which overestimates by ~2.5×. `queryCost` in the response is the number to trust.
+- Aborted searches are kept distinct from failed ones all the way through the stack, so a fast second search can't be reported as an error by the first.
+- Used `fireEvent` rather than adding `@testing-library/user-event` as a dependency.
+- React 19's types deprecate `FormEvent` ("doesn't actually exist") — use `SyntheticEvent`. Caught by Omar's IDE, not by `tsc`, since it's a hint rather than an error.
+
+**Next:** Omar to click through localhost:3000. Then the Current weather card ticket.
 
 ---
 

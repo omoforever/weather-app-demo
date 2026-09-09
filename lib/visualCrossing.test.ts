@@ -33,25 +33,25 @@ afterEach(() => {
   vi.unstubAllEnvs()
 })
 
-const DAY_SECONDS = 24 * 60 * 60
-
 describe('buildTimelineUrl', () => {
   it('requests the range as unix seconds so the location timezone is irrelevant', () => {
     const url = buildTimelineUrl('London', NOW_EPOCH, TEST_KEY)
 
-    expect(url).toContain(`/London/${NOW_EPOCH - WINDOW_SECONDS - DAY_SECONDS}`)
+    expect(url).toContain(`/London/${NOW_EPOCH - WINDOW_SECONDS}/${NOW_EPOCH + WINDOW_SECONDS}`)
   })
 
   /**
-   * Regression: Visual Crossing rounds the range to whole local calendar days, and an
-   * unpadded request came back missing the hour at the edge of the ±24h window.
+   * Padding the range either side would guarantee a complete window, but doubles the
+   * reported query cost (25 → 49) against a 1000/day free tier. See the comment in
+   * lib/visualCrossing.ts — this test exists so the trade-off can't be undone by
+   * accident.
    */
-  it('pads the requested range by a day either side of the window', () => {
+  it('asks for exactly the window, with no padding, to keep the query cost down', () => {
     const url = buildTimelineUrl('London', NOW_EPOCH, TEST_KEY)
 
     const [, from, to] = url.split('?')[0].split('/').slice(-3)
-    expect(NOW_EPOCH - Number(from)).toBe(WINDOW_SECONDS + DAY_SECONDS)
-    expect(Number(to) - NOW_EPOCH).toBe(WINDOW_SECONDS + DAY_SECONDS)
+    expect(NOW_EPOCH - Number(from)).toBe(WINDOW_SECONDS)
+    expect(Number(to) - NOW_EPOCH).toBe(WINDOW_SECONDS)
   })
 
   it('asks for metric hourly data plus current conditions', () => {

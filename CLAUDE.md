@@ -53,6 +53,7 @@ If tests are failing or something's unresolved, stop and flag it instead of ship
 
 ## Working habits
 
+- **Build file by file, pausing for review after each one.** This is a learning project — the point is for Omar to read and understand every file, not to receive a finished feature. Write one file, explain what it does and why it's shaped that way, then stop and wait for review before starting the next. Keep those explanations short and in plain English — a few points, no jargon dumps. Don't batch several files into one turn, and don't run ahead to the next file while a review is outstanding.
 - Small, reviewable chunks over large sweeping changes.
 - Ask before introducing a new dependency.
 - Ask before changing an established pattern (e.g. a folder structure or naming convention already in use elsewhere in the project) rather than deviating quietly.
