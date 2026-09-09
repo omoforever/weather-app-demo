@@ -4,7 +4,25 @@ Running log, newest at top. One entry per session or meaningful chunk of work �
 
 ## Current state
 
-Search works end to end: type a location, submit, see the weather. 84 tests green, lint and typecheck clean, click-tested in the browser. Results are still plain text — the card, timeline, refresh, loading and error tickets each replace one piece of that placeholder. Next ticket is the Current weather card.
+Search returns a designed weather card: temp, condition, wind, rain chance, with a fade+slide entrance. 104 tests green, lint and typecheck clean, verified on laptop and phone. Loading and error are still plain text, and there's no timeline or refresh yet. Next ticket is the Hourly timeline.
+
+---
+
+## [2026-09-09] — session 5
+
+**Did:** Built the Current weather card ticket file by file: `lib/formatWeather.ts` + tests (display formatting, hours rendered in the location's own timezone), `components/CurrentWeatherCard.tsx` + tests, and swapped the placeholder text in `app/page.tsx` for the card. 104 tests.
+
+Fixed phone access to the dev server: `allowedDevOrigins: ['192.168.1.73']` in `next.config.ts`.
+
+**Decisions:**
+- Formatting lives in `lib/`, not in the card, so the timeline shows the same values the same way.
+- Hours are formatted with `Intl.DateTimeFormat` in the location's timezone — looking up Tokyo from London shows Tokyo's clock. `hourCycle: 'h23'` and `hour: '2-digit'` keep it locale-independent and column-aligned.
+- The card's entrance animation drops the slide (keeping the fade) when the viewer has reduced motion enabled.
+- The card's own tests stub Motion to assert *our* decision; `app/page.test.tsx` renders it with the real library, so both are covered.
+- No weather icon — the API gives an icon slug but mapping slugs to icons isn't asked for in DESIGN.md. Easy to add later.
+- Reusable lessons (the `allowedDevOrigins` fix, `queryCost` vs docs, `next dev` writing into CLAUDE.md) are collected in `README.md` for folding back into the harness template.
+
+**Next:** Hourly timeline ticket.
 
 ---
 

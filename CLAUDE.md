@@ -63,3 +63,13 @@ If tests are failing or something's unresolved, stop and flag it instead of ship
 
 - **One source of truth per fact.** If a file manifest, status, or decision is recorded in two files, it will drift — pick which file owns it and have the other link to it instead of duplicating.
 - **Split out what's grown too big.** If `PROGRESS.md` (or any file here) gets long enough that reading it every session is wasteful, move the history into a `SESSION_LOG.md`, keep only current state in the original, and note the split here.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

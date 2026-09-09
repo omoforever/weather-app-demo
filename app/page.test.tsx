@@ -30,7 +30,7 @@ describe('HomePage', () => {
 
     expect(screen.getByLabelText('Location')).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-    expect(screen.queryByText(/hourly readings loaded/)).not.toBeInTheDocument()
+    expect(screen.queryByText('Now')).not.toBeInTheDocument()
   })
 
   it('searches for the location the user submitted', async () => {
@@ -44,19 +44,19 @@ describe('HomePage', () => {
     await screen.findByText(SNAPSHOT.resolvedAddress)
   })
 
-  it('shows the weather that came back', async () => {
+  /** The card renders with the real Motion library here, not the stub its own tests use. */
+  it('shows the weather in a card', async () => {
     fetchWeatherMock.mockResolvedValue(SNAPSHOT)
     render(<HomePage />)
 
     searchFor('London')
 
-    expect(await screen.findByText(SNAPSHOT.resolvedAddress)).toBeInTheDocument()
     expect(
-      screen.getByText(new RegExp(`${SNAPSHOT.current.temperature}°C`)),
+      await screen.findByRole('heading', { name: SNAPSHOT.resolvedAddress }),
     ).toBeInTheDocument()
-    expect(
-      screen.getByText(`${SNAPSHOT.hourly.length} hourly readings loaded`),
-    ).toBeInTheDocument()
+    expect(screen.getByText('15°C')).toBeInTheDocument()
+    expect(screen.getByText('Partially cloudy')).toBeInTheDocument()
+    expect(screen.getByText('9 km/h')).toBeInTheDocument()
   })
 
   it('shows a loading message while the search runs', async () => {
@@ -88,7 +88,7 @@ describe('HomePage', () => {
 
     const alert = await screen.findByRole('alert')
     expect(alert).toHaveTextContent("Couldn't find that location.")
-    expect(screen.queryByText(/hourly readings loaded/)).not.toBeInTheDocument()
+    expect(screen.queryByText('Now')).not.toBeInTheDocument()
   })
 
   it('replaces an error with results when the next search succeeds', async () => {
