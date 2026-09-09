@@ -4,7 +4,7 @@ Running log, newest at top. One entry per session or meaningful chunk of work �
 
 ## Current state
 
-Search works end to end: type a location, submit, see the weather. 84 tests green, lint and typecheck clean. Results are still plain text — the card, timeline, refresh, loading and error tickets each replace one piece of that placeholder. Not yet click-tested in a browser by Omar.
+Search works end to end: type a location, submit, see the weather. 84 tests green, lint and typecheck clean, click-tested in the browser. Results are still plain text — the card, timeline, refresh, loading and error tickets each replace one piece of that placeholder. Next ticket is the Current weather card.
 
 ---
 
@@ -21,7 +21,9 @@ Then dropped the request padding added yesterday.
 - Used `fireEvent` rather than adding `@testing-library/user-event` as a dependency.
 - React 19's types deprecate `FormEvent` ("doesn't actually exist") — use `SyntheticEvent`. Caught by Omar's IDE, not by `tsc`, since it's a hint rather than an error.
 
-**Next:** Omar to click through localhost:3000. Then the Current weather card ticket.
+**Verified:** Omar click-tested the flow at localhost:3000 — search, results, error, and recovery all behave.
+
+**Next:** Current weather card ticket.
 
 ---
 
