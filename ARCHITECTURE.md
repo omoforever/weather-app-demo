@@ -65,6 +65,14 @@ whenever `now` isn't on the hour — a "now" of 23:09 yielded only ~23h of past 
 `toHourlyWindow` floors the lower bound and ceils the upper, so the hours *containing*
 `now ± 24h` are included. Expect 49-50 readings, not exactly 49.
 
+**Weather icons carry the condition where the words don't**
+Timeline cells show an icon instead of condition text, so the icon's `aria-label` is the only
+thing conveying the condition — it must never be `aria-hidden` there. On the card the words are
+on screen beside it, so the icon *is* hidden to avoid a duplicate announcement. That's what
+`WeatherIcon`'s `decorative` prop selects between. Colours live in a named `weather` palette in
+`theme.ts` (measured at ≥3:1 against white, per WCAG non-text contrast), and day/night is
+distinguished by icon shape rather than colour alone.
+
 **Next.js 16, not 15**
 Scaffolded on the current release (16.3.4) rather than the 15 originally written in
 `CLAUDE.md`. `@types/node` is pinned to `^22` (matching local Node 22) because vitest 5
@@ -90,6 +98,8 @@ Built:
 | `lib/weatherErrors.ts` | `WeatherFetchError` + the single upstream→HTTP status/message mapping |
 | `lib/fetchWeather.ts` | Client-side call to `/api/weather`; unwraps the success/error envelope |
 | `lib/formatWeather.ts` | Display formatting — rounding, units, hours in the location's timezone |
+| `lib/weatherIcon.ts` | Maps a Visual Crossing `icon` slug to a MUI icon + `weather` palette token |
+| `components/WeatherIcon.tsx` | Renders that icon; `decorative` decides whether it announces the condition |
 | `hooks/useWeatherSearch.ts` | Search state (status/snapshot/error); cancels a superseded search |
 | `components/SearchInput.tsx` | Location text input + submit; never fires on blank input |
 | `components/CurrentWeatherCard.tsx` | Labelled region: temp, condition, wind, rain chance, fade+slide entrance |

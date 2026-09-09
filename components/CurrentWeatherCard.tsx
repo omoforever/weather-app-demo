@@ -5,6 +5,7 @@ import CardContent from '@mui/material/CardContent'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import { motion, useReducedMotion } from 'motion/react'
+import { WeatherIcon } from '@/components/WeatherIcon'
 import {
   formatPrecipitationChance,
   formatTemperature,
@@ -50,11 +51,16 @@ export function CurrentWeatherCard({ snapshot }: CurrentWeatherCardProps) {
               </Typography>
             </Stack>
 
-            <Stack spacing={1}>
-              <Typography variant="h2" component="p">
-                {formatTemperature(current.temperature)}
-              </Typography>
-              <Typography color="text.secondary">{current.condition.label}</Typography>
+            <Stack direction="row" spacing={4} sx={{ alignItems: 'center' }}>
+              {/* Decorative: the condition is written just below, so announcing the
+                  icon too would repeat it. */}
+              <WeatherIcon condition={current.condition} fontSize="large" decorative />
+              <Stack spacing={1}>
+                <Typography variant="h2" component="p">
+                  {formatTemperature(current.temperature)}
+                </Typography>
+                <Typography color="text.secondary">{current.condition.label}</Typography>
+              </Stack>
             </Stack>
 
             <Stack direction="row" spacing={8}>

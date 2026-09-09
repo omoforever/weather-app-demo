@@ -27,7 +27,7 @@ const reducedMotionMock = vi.mocked(useReducedMotion)
 const SNAPSHOT: WeatherSnapshot = toSnapshot(buildTimelineResponse(), NOW_EPOCH)
 
 function renderCard(snapshot: WeatherSnapshot = SNAPSHOT) {
-  render(<CurrentWeatherCard snapshot={snapshot} />)
+  return render(<CurrentWeatherCard snapshot={snapshot} />)
 }
 
 beforeEach(() => {
@@ -69,6 +69,18 @@ describe('CurrentWeatherCard', () => {
     renderCard()
 
     expect(screen.getByText('Partially cloudy')).toBeInTheDocument()
+  })
+
+  /**
+   * The condition is written on the card, so the icon beside it must stay silent —
+   * otherwise a screen reader reads "Partially cloudy" twice in a row.
+   */
+  it('shows a weather icon without repeating the condition to assistive tech', () => {
+    const { container } = renderCard()
+
+    expect(container.querySelector('svg')).toBeInTheDocument()
+    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+    expect(screen.getAllByText('Partially cloudy')).toHaveLength(1)
   })
 
   it('shows wind speed with its unit', () => {

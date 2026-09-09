@@ -3,6 +3,7 @@
 import type { Ref } from 'react'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
+import { WeatherIcon } from '@/components/WeatherIcon'
 import {
   formatPeriodLabel,
   formatPrecipitationChance,
@@ -42,10 +43,14 @@ export function HourlyPeriodCell({
       aria-current={isCurrent ? 'time' : undefined}
       spacing={2}
       sx={{
-        minWidth: 88,
+        // Narrower than when the condition was spelled out in words.
+        minWidth: 72,
         px: 2,
         py: 3,
         borderRadius: 2,
+        // textAlign centres the text; the icon is a flex item, so it needs alignItems
+        // to sit in the middle rather than against the left edge.
+        alignItems: 'center',
         textAlign: 'center',
         opacity: isDimmed ? 0.55 : 1,
         bgcolor: isCurrent ? 'action.selected' : 'transparent',
@@ -63,9 +68,9 @@ export function HourlyPeriodCell({
         {formatPrecipitationChance(period.precipitationProbability)}
       </Typography>
 
-      <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.3 }}>
-        {period.condition.label}
-      </Typography>
+      {/* Not decorative: the icon replaces the condition words here, so its label is
+          the only thing conveying the condition. */}
+      <WeatherIcon condition={period.condition} fontSize="small" />
     </Stack>
   )
 }

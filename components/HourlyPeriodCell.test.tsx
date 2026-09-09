@@ -63,10 +63,21 @@ describe('HourlyPeriodCell', () => {
     expect(screen.queryByText(/15\.2|34\.6/)).not.toBeInTheDocument()
   })
 
-  it('names the conditions', () => {
+  /**
+   * The icon replaces the condition words, so the label is the only thing carrying the
+   * condition — without it a screen reader would hear the numbers and nothing else.
+   */
+  it('conveys the conditions through the icon’s label', () => {
     renderCell()
 
-    expect(screen.getByText('Partially cloudy')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Partially cloudy' })).toBeInTheDocument()
+    expect(screen.queryByText('Partially cloudy')).not.toBeInTheDocument()
+  })
+
+  it('shows an icon for every hour, whatever the condition', () => {
+    renderCell({ condition: { label: 'Heavy rain', icon: 'rain' } })
+
+    expect(screen.getByRole('img', { name: 'Heavy rain' })).toBeInTheDocument()
   })
 
   it('dims a past hour', () => {
@@ -86,6 +97,16 @@ describe('HourlyPeriodCell', () => {
     const cell = renderCell({ isPast: true }, true)
 
     expect(cell).toHaveStyle({ opacity: '1' })
+  })
+
+  /**
+   * Regression: textAlign centres text but not the icon, which is a flex item — it sat
+   * against the left edge of the cell.
+   */
+  it('centres its contents, icon included', () => {
+    const cell = renderCell()
+
+    expect(cell).toHaveStyle({ alignItems: 'center' })
   })
 
   it('renders as a list item so the timeline reads as a list', () => {

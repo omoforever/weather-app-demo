@@ -4,7 +4,27 @@ Running log, newest at top. One entry per session or meaningful chunk of work �
 
 ## Current state
 
-Both core flows from PRODUCT.md work: search a location, see current conditions in a card plus the surrounding 24 hours as a sideways-scrolling timeline. 125 tests green, lint and typecheck clean, verified on laptop and phone. Still plain text: loading and error. Still missing: refresh, and both stretch goals. Next ticket is Refresh control.
+Both core flows from PRODUCT.md work, now with coloured weather icons on the card and in every timeline cell. 161 tests green, lint and typecheck clean, verified on laptop and phone. Still plain text: loading and error. Still missing: refresh, and both stretch goals. Next ticket is Motion polish, then Refresh control.
+
+---
+
+## [2026-09-09] — session 7
+
+**Did:** Built the Weather icons and colours ticket (first half of the polish pass, prioritised ahead of refresh/error/loading at Omar's request): `weather` palette in `theme.ts`, `lib/weatherIcon.ts` + tests, `components/WeatherIcon.tsx` + tests, wired into the card and the timeline cell. 161 tests.
+
+**Decisions:**
+- Named colour tokens (`weather.sun`, `weather.rain`…) via MUI module augmentation, so the mapping states meaning and the theme owns appearance. Typos in token names now fail to compile.
+- **Contrast was measured, not assumed.** `snow` at `#4FA3C7` was 2.84:1 on white — below the 3:1 WCAG requires for meaningful graphics. Darkened to `#3E86A6` (4.07:1); all eight tokens now pass. Pale-on-white is the trap.
+- Day/night distinguished by icon *shape* (sun vs crescent, cloud vs moon-behind-cloud), never colour alone. Pinned by a test.
+- There is no sun-behind-cloud icon in `@mui/icons-material`, so partly-cloudy uses an outline cloud against `cloudy`'s filled one. Rain/showers, the three thunder variants and the three snow variants each share an icon — a documented compromise, with the specific condition preserved in the label.
+- `WeatherIcon` takes `decorative`: on the card the condition is written beside it, so the icon is `aria-hidden` to avoid a double announcement; in cells the icon *replaces* the words, so its label is the sole carrier of the condition. Getting this backwards is silent unless you listen to the page.
+- Unknown slugs fall back to a plain cloud rather than rendering nothing.
+
+**Caught in review:** the cell's icon wasn't centred — `textAlign: center` centres text but an SVG is a flex item and needs `alignItems`. Every test passed with the icon against the left edge; found by Omar looking at his phone. Regression test added.
+
+**Also:** MUI v9's `Stack` no longer accepts `alignItems` as a prop (it belongs in `sx`) — `tsc` caught it, tests didn't. Fourth time this session the typechecker found what green tests missed.
+
+**Next:** Motion polish ticket (staggered timeline entrance, gentle idle loop on the card icon, spinner on the search button).
 
 ---
 
