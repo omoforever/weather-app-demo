@@ -4,7 +4,23 @@ Running log, newest at top. One entry per session or meaningful chunk of work �
 
 ## Current state
 
-Search returns a designed weather card: temp, condition, wind, rain chance, with a fade+slide entrance. 104 tests green, lint and typecheck clean, verified on laptop and phone. Loading and error are still plain text, and there's no timeline or refresh yet. Next ticket is the Hourly timeline.
+Both core flows from PRODUCT.md work: search a location, see current conditions in a card plus the surrounding 24 hours as a sideways-scrolling timeline. 125 tests green, lint and typecheck clean, verified on laptop and phone. Still plain text: loading and error. Still missing: refresh, and both stretch goals. Next ticket is Refresh control.
+
+---
+
+## [2026-09-09] — session 6
+
+**Did:** Built the Hourly timeline ticket file by file: `components/HourlyPeriodCell.tsx` + tests, `components/HourlyTimeline.tsx` + tests, wired below the card in `app/page.tsx`. 125 tests.
+
+**Decisions:**
+- The timeline decides which hour is "now" and tells each cell, so 50 cells can't disagree. The current reading is floored to its hour to match a cell (a 22:47 reading belongs to the 22:00 cell).
+- The timeline auto-scrolls the current hour into view. Without it the list opens on yesterday morning, since it starts 24h in the past.
+- Past hours are dimmed; the current hour is highlighted **and** carries `aria-current="time"` so it isn't visual-only. Added after asking how the "now" marker would be tested.
+- `CurrentWeatherCard` is now a labelled `<section>` (`region`, "Current conditions"). Forced by a real test failure: once the timeline was on the page, "15°C" matched both the card and several cells. Better semantics as well as unambiguous tests.
+- The cell takes `ref` as a plain prop — React 19 no longer needs `forwardRef` for this.
+- Three times this session `tsc` caught what green tests missed (loosely-typed mocks). Worth running typecheck as well as tests before believing a file is done.
+
+**Next:** Refresh control ticket.
 
 ---
 

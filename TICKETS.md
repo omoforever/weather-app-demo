@@ -6,7 +6,6 @@ _(none — pull the next item from Backlog)_
 
 ## Backlog
 
-- [ ] Hourly timeline — previous + next 24h periods, horizontally scrollable
 - [ ] Refresh control — re-fetch current location's data on demand
 - [ ] Error state — inline message for invalid location / API failure
 - [ ] Loading state — skeleton/placeholder while fetching
@@ -18,6 +17,7 @@ _(none — pull the next item from Backlog)_
 ## Done
 
 - [2026-09-08] Project setup — Next.js 16 + TypeScript scaffold (no `src/`), MUI v9 + emotion + Motion v12 with theme provider, Vitest + React Testing Library, `VISUAL_CROSSING_API_KEY` via `.env.local` / `.env.example`. Lint, typecheck and tests all clean.
+- [2026-09-09] Hourly timeline — `components/HourlyPeriodCell.tsx` (one hour; past hours dimmed, current hour marked `aria-current`) and `components/HourlyTimeline.tsx` (sideways-scrolling list that decides which hour is "now" and scrolls it into view), wired below the card. 125 tests green. Verified by Omar on laptop and phone.
 - [2026-09-09] Current weather card — `lib/formatWeather.ts` (display formatting, timezone-aware hours), `components/CurrentWeatherCard.tsx` (temp, condition, wind, rain chance, fade+slide entrance honouring reduced-motion), wired into `app/page.tsx`. 104 tests green. Verified by Omar on laptop and phone. Also fixed phone access: `allowedDevOrigins` in `next.config.ts`.
 - [2026-09-09] Search input + submit — `lib/fetchWeather.ts`, `hooks/useWeatherSearch.ts`, `components/SearchInput.tsx` and the wiring in `app/page.tsx`, 84 tests green. Results render as plain text pending the card ticket. Request padding dropped in the same session (query cost 49 → 25, ~40 lookups/day). Click-tested in the browser by Omar — works as expected.
 - [2026-09-09] `/api/weather` route — server-side proxy with `lib/` split (fetch / pure transform / error mapping), 45 tests green. Verified live against London, Auckland (UTC+12) and New York: 200 with a complete ±24h window, 404 for an unknown location, 400 for missing/blank input, and no API key in any response. Live testing caught two window bugs (upstream day-rounding clipping the window, and hour-boundary truncation) — both fixed with regression tests.

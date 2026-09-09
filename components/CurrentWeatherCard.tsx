@@ -37,7 +37,8 @@ export function CurrentWeatherCard({ snapshot }: CurrentWeatherCardProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
     >
-      <Card variant="outlined">
+      {/* A labelled section, so it reads as its own region and can be addressed as one. */}
+      <Card variant="outlined" component="section" aria-label="Current conditions">
         <CardContent>
           <Stack spacing={4}>
             <Stack spacing={1}>

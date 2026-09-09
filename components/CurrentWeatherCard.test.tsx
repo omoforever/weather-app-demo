@@ -45,6 +45,13 @@ describe('CurrentWeatherCard', () => {
     ).toBeInTheDocument()
   })
 
+  /** The page shows temperatures in the timeline too, so the card must be addressable. */
+  it('is a labelled region of its own', () => {
+    renderCard()
+
+    expect(screen.getByRole('region', { name: 'Current conditions' })).toBeInTheDocument()
+  })
+
   it('marks the reading as current', () => {
     renderCard()
 

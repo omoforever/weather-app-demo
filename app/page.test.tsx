@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import HomePage from '@/app/page'
 import { fetchWeather } from '@/lib/fetchWeather'
@@ -51,12 +51,24 @@ describe('HomePage', () => {
 
     searchFor('London')
 
-    expect(
-      await screen.findByRole('heading', { name: SNAPSHOT.resolvedAddress }),
-    ).toBeInTheDocument()
-    expect(screen.getByText('15°C')).toBeInTheDocument()
-    expect(screen.getByText('Partially cloudy')).toBeInTheDocument()
-    expect(screen.getByText('9 km/h')).toBeInTheDocument()
+    // Scoped to the card: the timeline shows temperatures too, so page-wide text
+    // queries would be ambiguous.
+    const card = await screen.findByRole('region', { name: 'Current conditions' })
+
+    expect(within(card).getByRole('heading', { name: SNAPSHOT.resolvedAddress })).toBeInTheDocument()
+    expect(within(card).getByText('15°C')).toBeInTheDocument()
+    expect(within(card).getByText('Partially cloudy')).toBeInTheDocument()
+    expect(within(card).getByText('9 km/h')).toBeInTheDocument()
+  })
+
+  it('shows the hourly timeline below the card', async () => {
+    fetchWeatherMock.mockResolvedValue(SNAPSHOT)
+    render(<HomePage />)
+
+    searchFor('London')
+
+    const timeline = await screen.findByRole('list', { name: 'Hourly forecast' })
+    expect(within(timeline).getAllByRole('listitem')).toHaveLength(SNAPSHOT.hourly.length)
   })
 
   it('shows a loading message while the search runs', async () => {

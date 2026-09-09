@@ -4,13 +4,13 @@ import Container from '@mui/material/Container'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import { CurrentWeatherCard } from '@/components/CurrentWeatherCard'
+import { HourlyTimeline } from '@/components/HourlyTimeline'
 import { SearchInput } from '@/components/SearchInput'
 import { useWeatherSearch } from '@/hooks/useWeatherSearch'
 
 /**
  * Wires the search field to the search state. The loading and error lines are still
- * plain text — the Hourly timeline, Loading state and Error state tickets each
- * replace one of them with a real component.
+ * plain text — the Loading state and Error state tickets replace them.
  */
 export default function HomePage() {
   const { status, snapshot, errorMessage, search } = useWeatherSearch()
@@ -32,7 +32,12 @@ export default function HomePage() {
           </Typography>
         )}
 
-        {status === 'success' && snapshot && <CurrentWeatherCard snapshot={snapshot} />}
+        {status === 'success' && snapshot && (
+          <>
+            <CurrentWeatherCard snapshot={snapshot} />
+            <HourlyTimeline snapshot={snapshot} />
+          </>
+        )}
       </Stack>
     </Container>
   )

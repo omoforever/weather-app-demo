@@ -83,22 +83,25 @@ Built:
 | Path | Purpose |
 |------|---------|
 | `app/layout.tsx` | Fonts (Inter / JetBrains Mono), MUI theme + CssBaseline providers |
-| `app/page.tsx` | Placeholder — real search UI lands with the SearchInput ticket |
+| `app/page.tsx` | Wires the search field to the search state and renders the results |
 | `app/api/weather/route.ts` | Route handler: validates input, delegates to `lib/`, maps errors to statuses |
 | `lib/visualCrossing.ts` | Builds the timeline URL and fetches it; throws `WeatherFetchError` on every failure path |
 | `lib/shapeWeather.ts` | Pure transform: upstream payload → `WeatherSnapshot`, filtered to ±24h |
 | `lib/weatherErrors.ts` | `WeatherFetchError` + the single upstream→HTTP status/message mapping |
+| `lib/fetchWeather.ts` | Client-side call to `/api/weather`; unwraps the success/error envelope |
+| `lib/formatWeather.ts` | Display formatting — rounding, units, hours in the location's timezone |
+| `hooks/useWeatherSearch.ts` | Search state (status/snapshot/error); cancels a superseded search |
+| `components/SearchInput.tsx` | Location text input + submit; never fires on blank input |
+| `components/CurrentWeatherCard.tsx` | Labelled region: temp, condition, wind, rain chance, fade+slide entrance |
+| `components/HourlyTimeline.tsx` | Sideways-scrolling ±24h list; decides which hour is "now" and scrolls to it |
+| `components/HourlyPeriodCell.tsx` | One hour in the timeline; dimmed if past, `aria-current` if now |
 | `types/weather.ts` | Shared types for the API response, UI props, and the upstream slice we read |
 | `theme.ts` | MUI theme — IKB blue, 4px spacing, mono for data readouts |
+| `next.config.ts` | `allowedDevOrigins` so a phone on the same wifi can load the dev server |
 | `test/setup.ts`, `test/fixtures/timeline.ts` | jest-dom matchers; shared Visual Crossing fixture |
 
-Planned:
-
-| Path | Purpose |
-|------|---------|
-| `components/SearchInput.tsx` | Location text input + submit |
-| `components/CurrentWeatherCard.tsx` | Temp, wind, rain chance, condition for "now" |
-| `components/HourlyTimeline.tsx` | Scrollable ±24h period list |
+Planned: a refresh control, real loading and error components (both are plain text today),
+and the two stretch goals (geolocation default, loading animation).
 
 ## Schema changes log
 
