@@ -26,6 +26,8 @@ function stubFetch(response: Response | Error) {
 
 beforeEach(() => {
   vi.stubEnv('VISUAL_CROSSING_API_KEY', TEST_KEY)
+  // Off by default: these tests are about the real request path.
+  vi.stubEnv('WEATHER_FIXTURE', '')
 })
 
 afterEach(() => {
@@ -132,5 +134,50 @@ describe('fetchTimeline', () => {
     stubFetch(jsonResponse({ unexpected: true }))
 
     await expect(fetchTimeline('London', NOW_EPOCH)).rejects.toMatchObject({ status: 502 })
+  })
+})
+
+describe('fetchTimeline in fixture mode', () => {
+  beforeEach(() => {
+    vi.stubEnv('WEATHER_FIXTURE', '1')
+    vi.stubEnv('NODE_ENV', 'development')
+  })
+
+  it('spends no request at all', async () => {
+    const fetchMock = stubFetch(jsonResponse(buildTimelineResponse()))
+
+    await fetchTimeline('London', NOW_EPOCH)
+
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('returns generated data, marked as such', async () => {
+    stubFetch(jsonResponse(buildTimelineResponse()))
+
+    const timeline = await fetchTimeline('London', NOW_EPOCH)
+
+    expect(timeline.resolvedAddress).toBe('London (fixture)')
+    expect(timeline.days.length).toBeGreaterThan(0)
+  })
+
+  it('works with no API key configured', async () => {
+    vi.stubEnv('VISUAL_CROSSING_API_KEY', '')
+    stubFetch(jsonResponse(buildTimelineResponse()))
+
+    await expect(fetchTimeline('London', NOW_EPOCH)).resolves.toBeTruthy()
+  })
+
+  it('still rejects a blank location, so the app behaves the same', async () => {
+    await expect(fetchTimeline('   ', NOW_EPOCH)).rejects.toMatchObject({ status: 400 })
+  })
+
+  /** A production build must call the real API, flag or no flag. */
+  it('is ignored in production', async () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    const fetchMock = stubFetch(jsonResponse(buildTimelineResponse()))
+
+    await fetchTimeline('London', NOW_EPOCH)
+
+    expect(fetchMock).toHaveBeenCalledOnce()
   })
 })

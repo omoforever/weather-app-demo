@@ -19,9 +19,14 @@ Both core flows from PRODUCT.md work, with coloured weather icons and motion pol
 - Idle loops on the card icon only. The `motion.span` wrapper isn't rendered at all when idle is off or reduced motion is on, so the ~50 timeline icons carry no animation machinery.
 - Idle motions are a pure function returning objects, so they're tested as data (sun rotates, storm flashes without moving, nothing loops faster than 2s) rather than by waiting on frames.
 
-**Caution — usage limits:** Omar flagged we're over halfway through a limit. Live searches cost 25 records each against 1000/day (~40 lookups). Manual verification is the main consumer. Mitigations to take up next: client-side caching in the Refresh ticket, and consider a dev fixture mode so UI work needs no live calls at all.
+**Then, in the same session — dev fixture mode.** Omar flagged we were over halfway through the day's Visual Crossing allowance, with manual UI testing the main consumer. `WEATHER_FIXTURE=1` now makes `lib/visualCrossing.ts` return generated data from `lib/devFixture.ts` instead of calling the API.
 
-**Next:** Refresh control, including caching.
+- The fixture cycles ten condition families, so one load shows every icon and colour — no waiting for it to snow somewhere.
+- It returns the same nested day/hour shape as the API, so the real parsing and window-trimming run against it. A fixture that skipped those paths would let bugs hide.
+- Guarded twice: the flag must be exactly `"1"` **and** `NODE_ENV !== 'production'`. A dev convenience must never serve invented weather to real users.
+- Currently **switched on** in `.env.local`. Set `WEATHER_FIXTURE=` and restart to go back to live data.
+
+**Next:** Refresh control, including the client-side caching (repeat searches shouldn't cost another 25 records).
 
 ---
 

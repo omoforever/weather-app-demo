@@ -1,4 +1,5 @@
 import type { VisualCrossingTimelineResponse } from '@/types/weather'
+import { buildFixtureTimeline, shouldUseFixture } from '@/lib/devFixture'
 import {
   fromUpstreamStatus,
   misconfiguredError,
@@ -65,6 +66,10 @@ export async function fetchTimeline(
 ): Promise<VisualCrossingTimelineResponse> {
   const trimmedLocation = location.trim()
   if (!trimmedLocation) throw missingLocationError()
+
+  // Checked after the blank-location guard so fixture mode behaves like the real thing,
+  // and before the key is read so it works without one.
+  if (shouldUseFixture()) return buildFixtureTimeline(trimmedLocation, nowEpochSeconds)
 
   const apiKey = process.env.VISUAL_CROSSING_API_KEY
   if (!apiKey) throw misconfiguredError()
