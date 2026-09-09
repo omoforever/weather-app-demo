@@ -45,3 +45,5 @@ Input stays, card area shows an inline message (e.g. "Couldn't find that locatio
 
 - Errors surface inline near the thing that failed (not a global toast) — keeps it obvious which action caused it.
 - Loading state replaces the card content, not the whole page — search input stays interactive.
+- **Errors sit alongside results rather than replacing them** (2026-09-09). The "Error state" note above says the card area shows the error *instead of* stale data; in practice, losing a good forecast to a mistyped follow-up search felt worse than showing both. So a failed search or refresh keeps the weather on screen with the notice above it, and only a failure with nothing loaded clears the view.
+- **Retry is offered only where it could succeed.** Service-unavailable and rate-limited errors get a Try again button; "couldn't find that location" doesn't, because retrying returns the same answer and spends another 25 records. `isRetryable` in `lib/weatherErrors.ts` owns that rule.

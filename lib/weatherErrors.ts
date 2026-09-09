@@ -43,3 +43,19 @@ export function fromUpstreamStatus(status: number): WeatherFetchError {
 export function unreachableError(): WeatherFetchError {
   return new WeatherFetchError(502, SERVICE_UNAVAILABLE_MESSAGE)
 }
+
+/**
+ * Whether trying the same request again could plausibly succeed — the UI offers a
+ * "Try again" button only when it could.
+ *
+ * The split is about *what went wrong*, not severity. 429 and 5xx are the service
+ * being unavailable or busy, so a later attempt may work. 400 and 404 mean the request
+ * itself is the problem: an unknown location stays unknown however many times it's
+ * asked for, and each attempt spends 25 records of a 1000/day allowance.
+ *
+ * Lives here beside `fromUpstreamStatus` so a new status can't be mapped without
+ * deciding what retrying it should do.
+ */
+export function isRetryable(status: number): boolean {
+  return status === 429 || status >= 500
+}

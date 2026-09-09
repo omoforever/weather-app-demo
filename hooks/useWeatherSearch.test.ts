@@ -367,3 +367,234 @@ describe('useWeatherSearch refresh', () => {
     expect(result.current.updatedAtMs).toBeTypeOf('number')
   })
 })
+
+describe('useWeatherSearch errors', () => {
+  it('records the status behind the message, so the UI can judge retrying', async () => {
+    fetchWeatherMock.mockRejectedValue(new WeatherFetchError(404, 'nope'))
+    const { result } = renderHook(() => useWeatherSearch())
+
+    await act(async () => {
+      await result.current.search('zzzznotaplace')
+    })
+
+    expect(result.current.errorStatus).toBe(404)
+  })
+
+  it('treats an unrecognised failure as the service being unavailable', async () => {
+    fetchWeatherMock.mockRejectedValue(new TypeError('boom'))
+    const { result } = renderHook(() => useWeatherSearch())
+
+    await act(async () => {
+      await result.current.search('London')
+    })
+
+    expect(result.current.errorStatus).toBe(502)
+  })
+
+  it('clears the status along with the message on the next success', async () => {
+    fetchWeatherMock.mockRejectedValueOnce(new WeatherFetchError(502, 'down'))
+    const { result } = renderHook(() => useWeatherSearch())
+    await act(async () => {
+      await result.current.search('London')
+    })
+
+    fetchWeatherMock.mockResolvedValueOnce(snapshotFor('London'))
+    await act(async () => {
+      await result.current.search('Paris')
+    })
+
+    expect(result.current.errorStatus).toBeNull()
+    expect(result.current.errorMessage).toBeNull()
+  })
+
+  /** A failed search has nothing to fall back on, so the view does clear. */
+  it('clears the view when a search fails with nothing loaded', async () => {
+    fetchWeatherMock.mockRejectedValue(new WeatherFetchError(502, 'down'))
+    const { result } = renderHook(() => useWeatherSearch())
+
+    await act(async () => {
+      await result.current.search('London')
+    })
+
+    expect(result.current.status).toBe('error')
+    expect(result.current.snapshot).toBeNull()
+  })
+
+  /**
+   * The bug this ticket fixes: a hiccup while updating must not throw away weather the
+   * user was reading perfectly happily.
+   */
+  it('keeps the weather on screen when a refresh fails', async () => {
+    fetchWeatherMock.mockResolvedValue(snapshotFor('London'))
+    const { result } = renderHook(() => useWeatherSearch())
+    await act(async () => {
+      await result.current.search('London')
+    })
+
+    fetchWeatherMock.mockRejectedValue(new WeatherFetchError(502, 'down'))
+    await act(async () => {
+      await result.current.refresh()
+    })
+
+    expect(result.current.status).toBe('success')
+    expect(result.current.snapshot?.resolvedAddress).toBe('London')
+    expect(result.current.errorMessage).toBe('down')
+    expect(result.current.isRefreshing).toBe(false)
+  })
+
+  it('keeps the weather on screen when a later search fails too', async () => {
+    fetchWeatherMock.mockResolvedValue(snapshotFor('London'))
+    const { result } = renderHook(() => useWeatherSearch())
+    await act(async () => {
+      await result.current.search('London')
+    })
+
+    fetchWeatherMock.mockRejectedValue(new WeatherFetchError(404, 'nope'))
+    await act(async () => {
+      await result.current.search('zzzznotaplace')
+    })
+
+    // The old weather is still readable, with the error alongside it.
+    expect(result.current.snapshot?.resolvedAddress).toBe('London')
+    expect(result.current.errorMessage).toBe('nope')
+  })
+
+  /**
+   * Regression: a search sets 'loading' on the way in. Failing without clearing that
+   * left it spinning forever and kept the search button disabled — you could see the
+   * error but not search again.
+   */
+  it('leaves no search running after a failure', async () => {
+    fetchWeatherMock.mockResolvedValue(snapshotFor('London'))
+    const { result } = renderHook(() => useWeatherSearch())
+    await act(async () => {
+      await result.current.search('London')
+    })
+
+    fetchWeatherMock.mockRejectedValue(new WeatherFetchError(404, 'nope'))
+    await act(async () => {
+      await result.current.search('zzzznotaplace')
+    })
+
+    expect(result.current.status).not.toBe('loading')
+    expect(result.current.status).toBe('success')
+  })
+
+  it('leaves no search running after a first-ever failure either', async () => {
+    fetchWeatherMock.mockRejectedValue(new WeatherFetchError(404, 'nope'))
+    const { result } = renderHook(() => useWeatherSearch())
+
+    await act(async () => {
+      await result.current.search('zzzznotaplace')
+    })
+
+    expect(result.current.status).toBe('error')
+  })
+
+  it('can search again after a failure', async () => {
+    fetchWeatherMock.mockResolvedValue(snapshotFor('London'))
+    const { result } = renderHook(() => useWeatherSearch())
+    await act(async () => {
+      await result.current.search('London')
+    })
+    fetchWeatherMock.mockRejectedValue(new WeatherFetchError(404, 'nope'))
+    await act(async () => {
+      await result.current.search('zzzznotaplace')
+    })
+
+    fetchWeatherMock.mockResolvedValue(snapshotFor('Paris'))
+    await act(async () => {
+      await result.current.search('Paris')
+    })
+
+    expect(result.current.snapshot?.resolvedAddress).toBe('Paris')
+    expect(result.current.errorMessage).toBeNull()
+  })
+
+  it('clears a refresh error once a refresh succeeds', async () => {
+    fetchWeatherMock.mockResolvedValue(snapshotFor('London'))
+    const { result } = renderHook(() => useWeatherSearch())
+    await act(async () => {
+      await result.current.search('London')
+    })
+
+    fetchWeatherMock.mockRejectedValueOnce(new WeatherFetchError(502, 'down'))
+    await act(async () => {
+      await result.current.refresh()
+    })
+    fetchWeatherMock.mockResolvedValueOnce(snapshotFor('London updated'))
+    await act(async () => {
+      await result.current.refresh()
+    })
+
+    expect(result.current.errorMessage).toBeNull()
+    expect(result.current.snapshot?.resolvedAddress).toBe('London updated')
+  })
+})
+
+describe('useWeatherSearch retry', () => {
+  it('does nothing before anything has been attempted', async () => {
+    const { result } = renderHook(() => useWeatherSearch())
+
+    await act(async () => {
+      await result.current.retry()
+    })
+
+    expect(fetchWeatherMock).not.toHaveBeenCalled()
+  })
+
+  /** Refresh can't cover this: a search that failed never became "loaded". */
+  it('re-runs a search that failed, which refresh could not', async () => {
+    fetchWeatherMock.mockRejectedValue(new WeatherFetchError(502, 'down'))
+    const { result } = renderHook(() => useWeatherSearch())
+    await act(async () => {
+      await result.current.search('London')
+    })
+
+    await act(async () => {
+      await result.current.refresh()
+    })
+    expect(fetchWeatherMock).toHaveBeenCalledTimes(1)
+
+    fetchWeatherMock.mockResolvedValue(snapshotFor('London'))
+    await act(async () => {
+      await result.current.retry()
+    })
+
+    expect(fetchWeatherMock).toHaveBeenCalledTimes(2)
+    expect(result.current.status).toBe('success')
+    expect(result.current.errorMessage).toBeNull()
+  })
+
+  it('retries the location that was attempted, not one that succeeded earlier', async () => {
+    fetchWeatherMock.mockResolvedValue(snapshotFor('London'))
+    const { result } = renderHook(() => useWeatherSearch())
+    await act(async () => {
+      await result.current.search('London')
+    })
+
+    fetchWeatherMock.mockRejectedValue(new WeatherFetchError(502, 'down'))
+    await act(async () => {
+      await result.current.search('Paris')
+    })
+    await act(async () => {
+      await result.current.retry()
+    })
+
+    expect(fetchWeatherMock.mock.calls.at(-1)?.[0]).toBe('Paris')
+  })
+
+  it('goes to the network rather than serving the cached failure-free copy', async () => {
+    fetchWeatherMock.mockResolvedValue(snapshotFor('London'))
+    const { result } = renderHook(() => useWeatherSearch())
+    await act(async () => {
+      await result.current.search('London')
+    })
+
+    await act(async () => {
+      await result.current.retry()
+    })
+
+    expect(fetchWeatherMock).toHaveBeenCalledTimes(2)
+  })
+})

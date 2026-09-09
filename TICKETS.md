@@ -6,7 +6,6 @@ _(none — pull the next item from Backlog)_
 
 ## Backlog
 
-- [ ] Error state — inline message for invalid location / API failure
 - [ ] Loading state — skeleton/placeholder while fetching
 - [ ] Decide the branch/PR workflow — CLAUDE.md's ship-it process says open a PR and merge it, but tickets so far have been committed straight to `main`, so there's nothing to open a PR from. Either start each ticket on a branch, or amend the ship-it process to match what we actually do. Raised 2026-09-09.
 - [ ] Playwright setup — deferred from the scaffold ticket; there's no user flow to drive end-to-end until the search UI exists
@@ -16,6 +15,7 @@ _(none — pull the next item from Backlog)_
 ## Done
 
 - [2026-09-08] Project setup — Next.js 16 + TypeScript scaffold (no `src/`), MUI v9 + emotion + Motion v12 with theme provider, Vitest + React Testing Library, `VISUAL_CROSSING_API_KEY` via `.env.local` / `.env.example`. Lint, typecheck and tests all clean.
+- [2026-09-09] Error state — `isRetryable` in `lib/weatherErrors.ts`, `errorStatus`/`retry()` in `useWeatherSearch`, `components/ErrorNotice.tsx` (MUI Alert, `role="alert"`, conditional Try again), wired into `app/page.tsx`. **Fixed a bug found while planning:** a failed refresh used to wipe the card and timeline. **And one found by Omar in the browser:** a failed search after a successful one left `status` stuck on `'loading'`, so the spinner span forever and the search button stayed disabled — six regression tests added. 279 tests green. Verified against the live API.
 - [2026-09-09] Refresh control + caching — `lib/weatherCache.ts` (10-minute freshness window, keyed on normalised location), `refresh()` and `isRefreshing`/`updatedAtMs` in `useWeatherSearch`, `components/RefreshControl.tsx`, wired above the card. Repeat searches now cost nothing; refresh deliberately bypasses the cache. Refresh updates in place — the card stays on screen rather than being replaced by a loading state. **Completes all three core flows in PRODUCT.md.** 237 tests green.
 - [2026-09-09] Dev fixture mode — `WEATHER_FIXTURE=1` makes `lib/visualCrossing.ts` return generated data from `lib/devFixture.ts` instead of calling the API, so UI work costs no quota. Cycles ten condition families so every icon is visible in one load; guarded against production twice (flag must be exactly `1` **and** `NODE_ENV !== 'production'`). 200 tests green. Verified live: 200 response, all ten icons, error paths unchanged, zero records spent.
 - [2026-09-09] Motion polish — staggered timeline entrance (fixed 250ms window, so 50 cells arrive as fast as 5 and never fight the scroll-to-now), gentle idle loop on the card icon only, spinner on the search button while fetching. All off under `prefers-reduced-motion`. Cell dimming moved from `opacity` to `filter` so the entrance fade could own `opacity`. 184 tests green. Verified by Omar on laptop and phone, reduced motion included.

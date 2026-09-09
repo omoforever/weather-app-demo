@@ -4,9 +4,31 @@ Running log, newest at top. One entry per session or meaningful chunk of work �
 
 ## Current state
 
-**All three core flows from PRODUCT.md are done** — search, ±24h timeline, refresh — with icons, motion polish and caching. 237 tests green, lint and typecheck clean. Remaining work is polish and housekeeping: loading and error are still plain text, plus Playwright setup, the branch/PR decision, and two stretch goals. Next ticket is Error state.
+All three core flows from PRODUCT.md are done, with icons, motion polish, caching and a proper error state. 279 tests green, lint and typecheck clean, verified against the live API. Remaining: the loading state is still plain "Loading…" text, plus Playwright setup, the branch/PR decision, and two stretch goals. Next ticket is Loading state.
 
-Note `WEATHER_FIXTURE=1` is set in `.env.local`: the app is serving generated weather. Clear it and restart for live data.
+`WEATHER_FIXTURE` is currently **empty** — the app is hitting the real API (25 records per search). Set it to `1` and restart for free UI work.
+
+---
+
+## [2026-09-09] — session 10
+
+**Did:** Error state ticket. `isRetryable` in `lib/weatherErrors.ts`, `errorStatus` and `retry()` in `useWeatherSearch`, `components/ErrorNotice.tsx`, wired into `app/page.tsx`. 279 tests.
+
+**Two bugs fixed, both about the same confusion — treating "we have an error" and "we have no data" as one thing:**
+
+1. **Found while planning.** A failed *refresh* set `status = 'error'`, and the page only rendered results on `'success'` — so a network hiccup while updating threw away weather the user was reading. Errors are now recorded independently of whether results exist.
+2. **Found by Omar in the browser, after I thought the ticket was done.** A search sets `'loading'` on the way in; my catch block only set a new status when there were *no* results. So a failed search *after* a successful one left status stuck on `'loading'` — spinner spinning forever, "Loading…" showing, and the search button disabled, with no way to try anywhere else. The catch now always lands on a terminal status.
+
+**Why the tests missed #2:** I had a test for exactly that scenario which asserted the snapshot and the error message — but not the status, which was the one field that was wrong. The page test checked the search *field* was enabled, not the *button*. Lesson recorded in `README.md`: assert the state machine's state explicitly, not just its neighbours.
+
+**Decisions:**
+- Retry is offered only for retryable statuses (429, 5xx). `isRetryable` lives beside `fromUpstreamStatus` so a new status mapping can't be added without deciding what retrying it should do.
+- A rejected API key (our 500) counts as retryable. Retrying won't fix it, but it isn't the user's input at fault, and a Try again button is a gentler dead end than implying their search was wrong.
+- `ErrorNotice` doesn't decide retry-ability — the page passes `onRetry` only when it applies. One rule, one home.
+- **Deviation from DESIGN.md, recorded in its patterns log:** errors now sit *alongside* results rather than replacing them.
+- `retry()` reads a different ref from `refresh()`: the last *attempted* location, not the last *loaded* one. A failed search never became "loaded".
+
+**Next:** Loading state ticket — replace "Loading…" with a skeleton.
 
 ---
 

@@ -66,6 +66,15 @@ The shape that worked (`lib/devFixture.ts`, `lib/visualCrossing.ts`):
 Ask early: *what in this project is metered, and what will I burn it on?* For a learning
 project the answer is almost always manual UI checking.
 
+### Assert the state, not just its neighbours
+
+A hook with a `status` state machine had a test for the exact failing scenario — it checked the
+snapshot and the error message and passed, while `status` sat stuck on `loading` forever. The
+visible result was a spinner that never stopped and a disabled search button. A sibling page test
+checked the input *field* was enabled rather than the *button*. Two tests aimed at the bug, both
+green. When something has a state machine, assert its state explicitly, and prefer asserting the
+control the user actually presses.
+
 ### Contrast is measured, not eyeballed
 
 A weather icon colour described in a code comment as "pale but still legible" measured

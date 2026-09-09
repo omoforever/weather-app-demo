@@ -79,6 +79,14 @@ API, so UI work costs no quota. It returns the API's own response shape, so real
 trimming still run. Guarded twice — the flag must be exactly `"1"` and `NODE_ENV` must not be
 production.
 
+**"We have an error" is separate from "we have no data"**
+`useWeatherSearch` records `errorMessage`/`errorStatus` independently of `status`, and the catch
+block always lands on a terminal status: back to `success` when results are still on screen,
+`error` only when there is nothing to fall back on. Conflating the two caused two bugs — a failed
+refresh wiping good weather, and a failed search leaving `status` stuck on `loading` (spinner
+spinning, search button disabled). Whether retrying is worth offering comes from `isRetryable` in
+`lib/weatherErrors.ts`, which lives beside the status mapping so the two can't drift.
+
 **Weather icons carry the condition where the words don't**
 Timeline cells show an icon instead of condition text, so the icon's `aria-label` is the only
 thing conveying the condition — it must never be `aria-hidden` there. On the card the words are

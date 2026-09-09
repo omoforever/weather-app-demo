@@ -7,6 +7,7 @@ import {
   UNKNOWN_LOCATION_MESSAGE,
   WeatherFetchError,
   fromUpstreamStatus,
+  isRetryable,
   misconfiguredError,
   missingLocationError,
   unreachableError,
@@ -71,5 +72,54 @@ describe('input and configuration errors', () => {
       status: 502,
       message: SERVICE_UNAVAILABLE_MESSAGE,
     })
+  })
+})
+
+describe('isRetryable', () => {
+  it('offers a retry when the service was unavailable', () => {
+    expect(isRetryable(502)).toBe(true)
+  })
+
+  it('offers a retry when we were rate limited', () => {
+    expect(isRetryable(429)).toBe(true)
+  })
+
+  it('offers a retry for a server-side failure', () => {
+    expect(isRetryable(500)).toBe(true)
+  })
+
+  /**
+   * An unknown location stays unknown however many times it's asked for, and each
+   * attempt spends 25 records — the UI should ask the user to edit the search instead.
+   */
+  it('does not offer a retry for a location that was not found', () => {
+    expect(isRetryable(404)).toBe(false)
+  })
+
+  it('does not offer a retry for a malformed request', () => {
+    expect(isRetryable(400)).toBe(false)
+  })
+
+  it('treats any server-side status as retryable, not only the ones we raise today', () => {
+    for (const status of [500, 502, 503, 504]) {
+      expect(isRetryable(status)).toBe(true)
+    }
+  })
+
+  it('agrees with the statuses fromUpstreamStatus actually produces', () => {
+    // Upstream 400 becomes our 404: the location is wrong, so retrying cannot help.
+    expect(isRetryable(fromUpstreamStatus(400).status)).toBe(false)
+    // A rejected key becomes our 500. The user can't fix it, but it isn't their input.
+    expect(isRetryable(fromUpstreamStatus(401).status)).toBe(true)
+    expect(isRetryable(fromUpstreamStatus(429).status)).toBe(true)
+    expect(isRetryable(fromUpstreamStatus(503).status)).toBe(true)
+  })
+
+  it('does not offer a retry when no location was entered', () => {
+    expect(isRetryable(missingLocationError().status)).toBe(false)
+  })
+
+  it('offers a retry when the service was unreachable', () => {
+    expect(isRetryable(unreachableError().status)).toBe(true)
   })
 })
