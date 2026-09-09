@@ -8,12 +8,13 @@ import { ErrorNotice } from '@/components/ErrorNotice'
 import { HourlyTimeline } from '@/components/HourlyTimeline'
 import { RefreshControl } from '@/components/RefreshControl'
 import { SearchInput } from '@/components/SearchInput'
+import { WeatherSkeleton } from '@/components/WeatherSkeleton'
 import { useWeatherSearch } from '@/hooks/useWeatherSearch'
 import { isRetryable } from '@/lib/weatherErrors'
 
 /**
- * Wires the search field to the search state. Loading is still plain text — the
- * Loading state ticket replaces it.
+ * Wires the search field to the search state and renders whichever of the four
+ * outcomes applies: nothing yet, a loading skeleton, an error notice, or results.
  */
 export default function HomePage() {
   const {
@@ -41,7 +42,7 @@ export default function HomePage() {
 
         <SearchInput onSearch={search} isSearching={status === 'loading'} />
 
-        {status === 'loading' && <Typography>Loading…</Typography>}
+        {status === 'loading' && <WeatherSkeleton />}
 
         {/* Sits above the results when there are some — a failed refresh reports next to
             what it failed to update — and in their place when there are none. */}

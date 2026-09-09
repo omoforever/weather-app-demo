@@ -74,13 +74,23 @@ describe('HomePage', () => {
     expect(within(timeline).getAllByRole('listitem')).toHaveLength(SNAPSHOT.hourly.length)
   })
 
-  it('shows a loading message while the search runs', async () => {
+  it('shows a loading skeleton while the search runs', async () => {
     fetchWeatherMock.mockImplementation(() => new Promise(() => {}))
     render(<HomePage />)
 
     searchFor('London')
 
-    expect(await screen.findByText('Loading…')).toBeInTheDocument()
+    expect(await screen.findByRole('status', { name: 'Loading weather' })).toBeInTheDocument()
+  })
+
+  it('replaces the skeleton with the weather once it arrives', async () => {
+    fetchWeatherMock.mockResolvedValue(SNAPSHOT)
+    render(<HomePage />)
+
+    searchFor('London')
+
+    await screen.findByRole('region', { name: 'Current conditions' })
+    expect(screen.queryByRole('status', { name: 'Loading weather' })).not.toBeInTheDocument()
   })
 
   it('blocks a second submit while the search is running', async () => {
@@ -89,7 +99,7 @@ describe('HomePage', () => {
 
     searchFor('London')
 
-    await screen.findByText('Loading…')
+    await screen.findByRole('status', { name: 'Loading weather' })
     expect(screen.getByRole('button', { name: 'Search' })).toBeDisabled()
   })
 
@@ -161,7 +171,8 @@ describe('HomePage refresh', () => {
 
     expect(await screen.findByRole('progressbar', { name: 'Refreshing' })).toBeInTheDocument()
     expect(screen.getByRole('region', { name: 'Current conditions' })).toBeInTheDocument()
-    expect(screen.queryByText('Loading…')).not.toBeInTheDocument()
+    // A refresh updates in place: no skeleton, because the weather is still readable.
+    expect(screen.queryByRole('status', { name: 'Loading weather' })).not.toBeInTheDocument()
   })
 
   it('spends no request when the same place is searched twice', async () => {
@@ -274,7 +285,7 @@ describe('HomePage errors', () => {
 describe('HomePage recovery after an error', () => {
   /**
    * Regression, reported from the browser: the search button stayed disabled and
-   * "Loading…" kept showing after a failed search, so there was no way to try
+   * the loading state kept showing after a failed search, so there was no way to try
    * somewhere else.
    */
   it('lets the user search again after a failed search', async () => {
@@ -290,7 +301,7 @@ describe('HomePage recovery after an error', () => {
     await screen.findByRole('alert')
 
     expect(screen.getByRole('button', { name: 'Search' })).toBeEnabled()
-    expect(screen.queryByText('Loading…')).not.toBeInTheDocument()
+    expect(screen.queryByRole('status', { name: 'Loading weather' })).not.toBeInTheDocument()
   })
 
   it('stops showing a loading state once a first search fails', async () => {
@@ -300,7 +311,7 @@ describe('HomePage recovery after an error', () => {
     searchFor('zzzznotaplace')
     await screen.findByRole('alert')
 
-    expect(screen.queryByText('Loading…')).not.toBeInTheDocument()
+    expect(screen.queryByRole('status', { name: 'Loading weather' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Search' })).toBeEnabled()
   })
 

@@ -124,6 +124,8 @@ Built:
 | `lib/weatherCache.ts` | In-memory snapshot cache, 10-minute freshness window, keyed on normalised location |
 | `lib/devFixture.ts` | Generated stand-in for the API when `WEATHER_FIXTURE=1` (development only) |
 | `components/RefreshControl.tsx` | Refresh button plus when the showing data was fetched |
+| `components/ErrorNotice.tsx` | Inline error alert; a retry button only when retrying could work |
+| `components/WeatherSkeleton.tsx` | Card- and timeline-shaped placeholders while a search runs |
 | `components/WeatherIcon.tsx` | Renders that icon; `decorative` decides whether it announces the condition |
 | `hooks/useWeatherSearch.ts` | Search state (status/snapshot/error); cancels a superseded search |
 | `components/SearchInput.tsx` | Location text input + submit; never fires on blank input |

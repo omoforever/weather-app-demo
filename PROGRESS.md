@@ -4,9 +4,26 @@ Running log, newest at top. One entry per session or meaningful chunk of work �
 
 ## Current state
 
-All three core flows from PRODUCT.md are done, with icons, motion polish, caching and a proper error state. 279 tests green, lint and typecheck clean, verified against the live API. Remaining: the loading state is still plain "Loading…" text, plus Playwright setup, the branch/PR decision, and two stretch goals. Next ticket is Loading state.
+**Everything in PRODUCT.md's core scope plus all the UI polish is done.** Search, ±24h timeline, refresh, weather icons, motion, caching, error state and loading skeleton. 287 tests green, lint and typecheck clean. What's left is housekeeping and stretch goals: Playwright setup, the branch/PR decision, geolocation default, and a Motion loading animation.
 
-`WEATHER_FIXTURE` is currently **empty** — the app is hitting the real API (25 records per search). Set it to `1` and restart for free UI work.
+`WEATHER_FIXTURE=1` is currently **set** — the app serves generated weather, so UI work is free. Clear it and restart for live data (25 records per search).
+
+---
+
+## [2026-09-09] — session 11
+
+**Did:** Loading state ticket. `components/WeatherSkeleton.tsx` + tests, wired into `app/page.tsx` in place of the plain "Loading…" text. 287 tests.
+
+**Decisions:**
+- The skeleton mirrors the real layout — same card, same round icon spot, same 72px cells — so content fills in rather than the page jumping. That's the reason to prefer a skeleton over a spinner.
+- **One `role="status"` label for the whole block**, with the ~30 placeholders `aria-hidden`. Announcing each box would bury the one useful sentence, and it's invisible unless you actually listen to the page.
+- Eight placeholder cells, not fifty: the rest of the real strip scrolls out of view.
+- A **refresh** deliberately shows no skeleton — the weather is still readable, so it updates in place. Now pinned by a test, since a skeleton exists and could plausibly have been used there.
+- The skeleton tests lean on MUI class names, which is normally a smell. A skeleton has no text or roles by design, so the alternative was asserting nothing. Recorded as a deliberate compromise.
+
+**Worth noting:** five page tests had been written against the literal string `"Loading…"` — it had quietly become the contract for "busy". They now assert `role="status"` named "Loading weather", so rewording copy won't break them.
+
+**Next:** Playwright setup is the most valuable remaining item — there are four real flows to drive end to end. Then the branch/PR decision, then the two stretch goals.
 
 ---
 
